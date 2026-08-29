@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -18,6 +19,21 @@ def _print_version(value: bool) -> None:
     if value:
         typer.echo(f"vectex {__version__}")
         raise typer.Exit()
+
+
+def _executable_overrides(values: Sequence[str]) -> dict[str, str]:
+    """Parse repeated ``NAME=PATH`` command-line options."""
+    overrides: dict[str, str] = {}
+    for value in values:
+        name, separator, executable = value.partition("=")
+        if not separator or not name or not executable:
+            raise typer.BadParameter("must have the form NAME=PATH")
+        if "\x00" in name or "\x00" in executable:
+            raise typer.BadParameter("must not contain NUL characters")
+        if name in overrides:
+            raise typer.BadParameter(f"sets {name!r} more than once")
+        overrides[name] = executable
+    return overrides
 
 
 app = typer.Typer(
@@ -79,6 +95,13 @@ def main(
             help="Prefix for the outer group and all rewritten SVG IDs.",
         ),
     ] = None,
+    executable: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--executable",
+            help="Override an executable with NAME=PATH; repeat for more tools.",
+        ),
+    ] = None,
     version: Annotated[
         bool,
         typer.Option(
@@ -91,6 +114,7 @@ def main(
 ) -> None:
     """Render SOURCE and emit an SVG fragment or standalone SVG file."""
     del version
+    executable_overrides = _executable_overrides(executable or ())
     try:
         fragment = render(
             source,
@@ -101,6 +125,7 @@ def main(
             scale=scale,
             timeout=timeout,
             id_prefix=id_prefix,
+            executable_overrides=executable_overrides or None,
         )
     except VectexError as exc:
         raise typer.BadParameter(str(exc)) from exc

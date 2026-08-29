@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `vectex` CLI renders a TeX document body to stdout as an SVG `<g>`
   fragment, or writes a standalone SVG through `--output PATH` (also
   `--as-doc`). It provides `--help`, `--version`, and options for the engine,
-  math mode, preamble, size, scale, timeout, and ID prefix.
+  math mode, preamble, size, scale, timeout, ID prefix, and repeatable
+  `--executable NAME=PATH` tool overrides.
 - `render_math()` for bare expressions, and `RenderItem` as a single record for
   everything that shapes a fragment. `render()` accepts one, and
   `render_many()` groups items that share a compilation, so a batch keeps one

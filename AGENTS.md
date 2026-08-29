@@ -33,8 +33,7 @@ documents, implement an SVG editor, or provide a GUI.
   security, or command-construction bug.
 - Keep `docs/` in sync with user-visible code changes: update affected guides,
   reference material, and examples in the same change. Build the site with
-  `uv run zensical build` (or `pixi run docs`) before reporting documentation
-  changes complete.
+  `uv run zensical build` before reporting documentation changes complete.
 - Keep `CHANGELOG.md` current for notable user-facing changes. Follow the
   Keep a Changelog 1.1.0 format: add concise, human-readable entries under
   `Unreleased`, grouped only as Added, Changed, Deprecated, Removed, Fixed, or
@@ -43,10 +42,7 @@ documents, implement an SVG editor, or provide a GUI.
 ## Packaging and releases
 
 - `pyproject.toml` is canonical for Python metadata and pip builds.
-- Keep `recipe/recipe.yaml` version and dependencies aligned with
-  `pyproject.toml`.
-- Build both wheel and sdist for package qualification. Build the Conda recipe
-  when `conda-build` or a compatible builder is available.
+- Build both wheel and sdist for package qualification.
 - Do not commit, tag, upload, or publish unless the user explicitly requests it.
 - The project is distributed under the MIT License; keep the license metadata
   and `LICENSE` file in sync for public releases.

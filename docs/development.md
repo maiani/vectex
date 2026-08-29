@@ -45,6 +45,8 @@ manual dispatch with an existing tag specified. It first verifies that the tag
 is exactly `v` plus `[project].version` in `pyproject.toml`, then calls the same
 test workflow against that tag as a required gate. Only after that succeeds does
 it build, metadata-check, and upload the wheel and source distribution.
+The test workflow uses the checked-in `uv.lock`, so CI and the documented local
+environment resolve the same dependencies.
 
 It uses PyPI Trusted Publishing rather than a stored API token. Before the
 first release, configure a PyPI trusted publisher for the `vectex` project with

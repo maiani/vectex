@@ -45,8 +45,9 @@ SVG document instead:
 vectex '$E = mc^2$' --output einstein.svg
 ```
 
-Run `vectex --help` for its engine, math-mode, preamble, size, scale, and
-timeout options; `vectex --version` reports the installed version.
+Use `--executable NAME=PATH` to override a tool location; repeat it for both
+the engine and `dvisvgm` when needed. Run `vectex --help` for the complete
+option list; `vectex --version` reports the installed version.
 
 ## Minimal use
 
@@ -268,17 +269,11 @@ Run optional real-tool tests only when explicitly requested:
 VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration
 ```
 
-`recipe/recipe.yaml` provides a noarch Conda recipe for `rattler-build`. Vectex
-is distributed under the MIT License.
+Vectex is distributed under the MIT License.
 
-## Current limitations
+## Scope
 
-- dvisvgm is the only built-in converter and PDF is the only intermediate.
-- Typst does not currently derive a typographic baseline; TeX does.
-- Document stylesheets, embedded raster resources, animation, and external
-  resources are rejected instead of partially interpreted.
-- Vectex does not implement CSS cascading or node-by-node backend translation.
-- TexText interoperability is covered at its metadata/detection contract. A
-  live Inkscape/TexText GUI round trip remains an optional system-level check.
-- Destination-document insertion, placement, replacement, GUI behavior, and
-  Inkscape selection management belong to the caller.
+Vectex produces static, self-contained SVG fragments; it does not manipulate a
+destination SVG document. See [Rendering](docs/rendering.md) for the
+built-in pipeline, Typst baseline behavior, TexText contract, and trust policy,
+and [Fragments](docs/fragments.md) for placement and caller integration.

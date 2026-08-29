@@ -57,9 +57,7 @@ include = [
   "/LICENSE",
   "/AGENTS.md",
   "/docs",
-  "/pixi.toml",
   "/pyproject.toml",
-  "/recipe",
   "/zensical.toml",
 ]
 

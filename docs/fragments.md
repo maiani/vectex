@@ -42,6 +42,13 @@ Prefer baseline alignment when labels must read as one line: a word with a
 descender aligned by the bottom of its box sits optically higher than a word
 without one, because the box, not the type, is what got aligned.
 
+## Integration boundary
+
+Vectex creates a normalized fragment and reports its geometry. The caller owns
+insertion into a destination document, placement, replacement, GUI behavior,
+and Inkscape selection management. The returned outer group should remain
+intact when TexText compatibility is needed.
+
 ## Serialization and copies
 
 `to_svg()` returns the deterministic canonical serialization. `to_lxml()`

@@ -19,6 +19,17 @@ Built-in engine names are `pdflatex`, `xelatex`, `lualatex`, and `typst`; the
 built-in converter is `dvisvgm`. Applications may instead supply objects that
 implement Vectex's public `Compiler` and `Converter` protocols.
 
+## Built-in pipeline
+
+The bundled pathway compiles each source page to PDF and converts it with
+`dvisvgm`. It is the only built-in converter pathway; applications that need a
+different intermediate format or SVG converter can provide their own
+`Compiler` and `Converter` implementations.
+
+TeX rendering derives `fragment.baseline` from the measured height and depth of
+the typeset box. Typst does not yet provide that measurement, so a Typst
+fragment has no baseline unless the caller supplies `baseline=` explicitly.
+
 To make executable locations explicit, pass a mapping keyed by the component
 name:
 
@@ -37,6 +48,14 @@ fragment = vectex.render(
 Arguments are sequences, never shell command strings. Vectex does not invoke a
 shell. A failed command or timeout raises a structured `CompilationError` or
 `ConversionError` containing the command context.
+
+The CLI has the corresponding repeatable `--executable NAME=PATH` option:
+
+```console
+vectex '$E = mc^2$' \
+  --executable pdflatex=/opt/texlive/bin/pdflatex \
+  --executable dvisvgm=/opt/texlive/bin/dvisvgm
+```
 
 ## TeX input
 
@@ -125,6 +144,10 @@ editing in TexText. Pass `textext_compatible=False` to omit these attributes.
 `preamble` stores preamble content in Vectex metadata. If a TexText edit must
 reuse a shared preamble file, also provide `textext_preamble_file` with a path
 that will be available on the editing machine.
+
+Vectex tests the TexText metadata and detection contract. A complete
+Inkscape/TexText GUI round trip remains an optional system-level integration
+check rather than a library requirement.
 
 ## Trust boundary
 

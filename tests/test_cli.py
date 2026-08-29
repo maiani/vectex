@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 import vectex
 from vectex.cli import app
+from vectex.exceptions import MissingExecutableError
 from vectex.normalizer import Normalizer
 
 runner = CliRunner()
@@ -65,6 +67,7 @@ def test_cli_version_and_help() -> None:
     assert "--output" in help_result.stdout
     assert "--id-prefix" in help_result.stdout
     assert "--engine" in help_result.stdout
+    assert "--executable" in help_result.stdout
     assert "--version" in help_result.stdout
 
 
@@ -97,6 +100,10 @@ def test_cli_forwards_rendering_options(monkeypatch, simple_svg: bytes) -> None:
             "10",
             "--id-prefix",
             "einstein",
+            "--executable",
+            "xelatex=/opt/texlive/bin/xelatex",
+            "--executable",
+            "dvisvgm=/opt/texlive/bin/dvisvgm",
         ],
     )
 
@@ -110,4 +117,52 @@ def test_cli_forwards_rendering_options(monkeypatch, simple_svg: bytes) -> None:
         "scale": None,
         "timeout": 10.0,
         "id_prefix": "einstein",
+        "executable_overrides": {
+            "xelatex": "/opt/texlive/bin/xelatex",
+            "dvisvgm": "/opt/texlive/bin/dvisvgm",
+        },
     }
+
+
+@pytest.mark.parametrize(
+    "value, message",
+    [
+        ("pdflatex", "NAME=PATH"),
+        ("=pdflatex", "NAME=PATH"),
+        ("pdflatex=", "NAME=PATH"),
+    ],
+)
+def test_cli_rejects_malformed_executable_override(value: str, message: str) -> None:
+    result = runner.invoke(app, ["$E=mc^2$", "--executable", value])
+
+    assert result.exit_code != 0
+    assert message in result.output
+
+
+def test_cli_rejects_duplicate_executable_override() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "$E=mc^2$",
+            "--executable",
+            "pdflatex=/one/pdflatex",
+            "--executable",
+            "pdflatex=/two/pdflatex",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "sets 'pdflatex' more than once" in result.output
+
+
+def test_cli_reports_missing_rendering_tool(monkeypatch) -> None:
+    def missing_tool(source: str, **kwargs: object) -> None:
+        del source, kwargs
+        raise MissingExecutableError("pdflatex", "pdflatex")
+
+    monkeypatch.setattr("vectex.cli.render", missing_tool)
+
+    result = runner.invoke(app, ["$E=mc^2$"])
+
+    assert result.exit_code != 0
+    assert "Cannot find the 'pdflatex' executable 'pdflatex' on PATH" in result.output
