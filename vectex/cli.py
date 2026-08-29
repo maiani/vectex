@@ -49,13 +49,6 @@ def main(
         str,
         typer.Argument(help="TeX document body or Typst source to render."),
     ],
-    as_doc: Annotated[
-        bool,
-        typer.Option(
-            "--as-doc",
-            help="Output a standalone SVG document instead of an SVG fragment.",
-        ),
-    ] = False,
     output: Annotated[
         Path | None,
         typer.Option(
@@ -64,6 +57,14 @@ def main(
             help="Write the selected SVG form to PATH instead of standard output.",
         ),
     ] = None,
+    as_doc: Annotated[
+        bool,
+        typer.Option(
+            "--as-doc",
+            is_flag=True,
+            help="Output a standalone SVG document instead of an SVG <g> fragment.",
+        ),
+    ] = False,
     engine: Annotated[
         str,
         typer.Option("--engine", help="Rendering engine to invoke."),
