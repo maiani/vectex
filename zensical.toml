@@ -1,0 +1,16 @@
+[project]
+site_name = "Vectex"
+site_description = "Portable, editable SVG fragments from LaTeX or Typst"
+docs_dir = "docs"
+site_dir = "site"
+nav = [
+  { "Overview" = "index.md" },
+  { "Rendering" = "rendering.md" },
+  { "Fragments" = "fragments.md" },
+  { "Development" = "development.md" },
+]
+
+[project.validation]
+invalid_links = true
+invalid_link_anchors = true
+unresolved_references = true

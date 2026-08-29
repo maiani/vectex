@@ -1,10 +1,12 @@
 """Render LaTeX or Typst into portable SVG group fragments."""
 
-from .api import render
+from .api import RenderItem, clear_cache, render, render_many, render_math
 from .compiler import (
     CompilationResult,
     Compiler,
     CompileRequest,
+    MathMode,
+    MathModeInput,
     TeXCompiler,
     TypstCompiler,
 )
@@ -42,15 +44,21 @@ __all__ = [
     "Converter",
     "DvisvgmConverter",
     "InvalidSVGError",
+    "MathMode",
+    "MathModeInput",
     "MissingExecutableError",
     "Normalizer",
+    "RenderItem",
     "TeXCompiler",
     "TypstCompiler",
     "UnsafeSVGError",
     "UnsupportedBackendError",
     "VectexError",
     "VectexFragment",
+    "clear_cache",
     "render",
+    "render_many",
+    "render_math",
 ]
 
 __version__ = "0.1.0"

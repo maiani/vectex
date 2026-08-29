@@ -60,6 +60,7 @@ class Normalizer:
         converter: str,
         scale: float = 1.0,
         baseline: float | None = None,
+        baseline_ratio: float | None = None,
         compiler_options: Mapping[str, Any] | None = None,
         converter_options: Mapping[str, Any] | None = None,
         id_prefix: str | None = None,
@@ -78,19 +79,32 @@ class Normalizer:
         scale = _positive_number(scale, "scale")
         if baseline is not None and not math.isfinite(baseline):
             raise ConfigurationError("baseline must be finite when provided")
+        if baseline_ratio is not None and (
+            not math.isfinite(baseline_ratio) or not 0 <= baseline_ratio <= 1
+        ):
+            raise ConfigurationError("baseline_ratio must be between zero and one")
         prefix = _id_prefix(id_prefix)
         root = _parse_svg(svg)
         _qualify_svg_namespace(root)
+        # Validate the complete converter output before pruning anything. This
+        # keeps unused definitions from bypassing the SVG trust boundary.
+        _validate_and_map(root, prefix=prefix, root_id=f"{prefix}-root")
+        _prune_unused_definitions(root)
         min_x, min_y, source_width, source_height = _view_box(root)
         if baseline is None:
             baseline = _optional_number(root.get("data-baseline"), "data-baseline")
+        if baseline is None and baseline_ratio is not None:
+            baseline = baseline_ratio * source_height
 
         fragment_id = f"{prefix}-root"
         id_map = _validate_and_map(root, prefix=prefix, root_id=fragment_id)
         _rewrite_references(root, id_map)
+        _make_default_fill_inheritable(root)
 
         width = source_width * scale
         height = source_height * scale
+        if baseline is not None:
+            baseline *= scale
         view_box = (0.0, 0.0, width, height)
         compiler_data = dict(compiler_options or {})
         converter_data = dict(converter_options or {})
@@ -212,6 +226,60 @@ def _qualify_svg_namespace(root: etree._Element) -> None:
             element.tag = f"{{{SVG_NS}}}{qname.localname}"
 
 
+def _prune_unused_definitions(root: etree._Element) -> None:
+    """Drop converter definitions carried over from unrelated PDF pages."""
+    definitions = [
+        element for element in root.iter() if etree.QName(element).localname == "defs"
+    ]
+    if not definitions:
+        return
+    defined = {
+        element.get("id"): element
+        for container in definitions
+        for element in container.iterdescendants()
+        if element.get("id") is not None
+    }
+    needed: set[str] = set()
+
+    def collect(element: etree._Element) -> None:
+        for key, value in element.attrib.items():
+            if etree.QName(key).localname == "href" and value.startswith("#"):
+                needed.add(value[1:])
+            for match in _URL_RE.finditer(value):
+                target = match.group("target").strip()
+                if target.startswith("#"):
+                    needed.add(target[1:])
+
+    for element in root.iter():
+        if not any(
+            container is element or container in element.iterancestors()
+            for container in definitions
+        ):
+            collect(element)
+    pending = list(needed)
+    while pending:
+        target = pending.pop()
+        definition = defined.get(target)
+        if definition is None:
+            continue
+        before = set(needed)
+        for element in definition.iter():
+            collect(element)
+        pending.extend(needed - before)
+    for container in definitions:
+        for child in tuple(container):
+            child_id = child.get("id")
+            descendant_ids = {
+                descendant.get("id") for descendant in child.iterdescendants()
+            }
+            if (
+                child_id is not None
+                and child_id not in needed
+                and descendant_ids.isdisjoint(needed)
+            ):
+                container.remove(child)
+
+
 def _view_box(root: etree._Element) -> tuple[float, float, float, float]:
     raw = root.get("viewBox")
     if raw is not None:
@@ -293,6 +361,35 @@ def _rewrite_references(root: etree._Element, mapping: Mapping[str, str]) -> Non
                 return f"url(#{_mapped(target, mapping)})"
 
             element.set(key, _URL_RE.sub(replace_url, value))
+
+
+_DEFAULT_BLACK = frozenset({"#000", "#000000", "black", "rgb(0,0,0)"})
+
+
+def _make_default_fill_inheritable(root: etree._Element) -> None:
+    """Remove default black fills so the destination group's fill is inherited."""
+    for element in root.iter():
+        fill = element.get("fill")
+        if fill is not None and fill.strip().lower().replace(" ", "") in _DEFAULT_BLACK:
+            del element.attrib["fill"]
+        style = element.get("style")
+        if style is None:
+            continue
+        declarations = []
+        for declaration in style.split(";"):
+            name, separator, value = declaration.partition(":")
+            if (
+                separator
+                and name.strip().lower() == "fill"
+                and value.strip().lower().replace(" ", "") in _DEFAULT_BLACK
+            ):
+                continue
+            if declaration.strip():
+                declarations.append(declaration.strip())
+        if declarations:
+            element.set("style", ";".join(declarations))
+        else:
+            del element.attrib["style"]
 
 
 def _mapped(target: str, mapping: Mapping[str, str]) -> str:

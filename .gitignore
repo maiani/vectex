@@ -7,5 +7,6 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+site/
 .pixi/
 *.py[cod]

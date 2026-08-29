@@ -66,6 +66,28 @@ def test_nested_definitions_and_all_reference_forms_are_rewritten(
     assert not re.search(r"(?<!fixture-)#(?:glyph|clip|gradient)", fragment_xml(root))
 
 
+def test_pruning_retains_a_referenced_nested_definition() -> None:
+    raw = (
+        f'<svg xmlns="{SVG_NS}" viewBox="0 0 1 1">'
+        '<defs><g id="unused-wrapper"><path id="glyph" d="M0 0h1v1z"/></g></defs>'
+        '<use href="#glyph"/></svg>'
+    ).encode()
+    root = normalize(raw).to_lxml()
+    href = root.xpath("//*[local-name()='use']/@href")
+    assert href == ["#fixture-1"]
+    assert root.xpath("//*[@id='fixture-1']")
+
+
+def test_unsafe_unused_definition_is_rejected() -> None:
+    raw = (
+        f'<svg xmlns="{SVG_NS}" viewBox="0 0 1 1">'
+        '<defs><script id="unused">alert(1)</script></defs>'
+        '<path d="M0 0h1v1z"/></svg>'
+    ).encode()
+    with pytest.raises(UnsafeSVGError, match="script"):
+        normalize(raw)
+
+
 def test_fragments_have_disjoint_default_id_namespaces(complex_svg: bytes) -> None:
     first = Normalizer().normalize(
         complex_svg, source="x", engine="pdflatex", converter="dvisvgm"
@@ -128,6 +150,21 @@ def test_baseline_from_converter_or_explicit_value() -> None:
     )
     assert normalize(raw).baseline == 2.5
     assert normalize(raw, baseline=1.25).baseline == 1.25
+    assert normalize(raw, baseline_ratio=0.5, scale=2).baseline == 5
+
+
+def test_default_black_fill_is_inherited_but_authored_colour_is_preserved() -> None:
+    raw = (
+        f'<svg xmlns="{SVG_NS}" viewBox="0 0 2 2">'
+        '<path id="black" fill="#000" d="M0 0"/>'
+        '<path id="red" fill="#f00" d="M1 1"/>'
+        "</svg>"
+    ).encode()
+    root = normalize(raw).to_lxml()
+    black = root.xpath(".//*[@id='fixture-0']")[0]
+    red = root.xpath(".//*[@id='fixture-1']")[0]
+    assert black.get("fill") is None
+    assert red.get("fill") == "#f00"
 
 
 def test_lxml_returns_independent_copies(simple_svg: bytes) -> None:

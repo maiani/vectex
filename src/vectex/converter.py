@@ -49,21 +49,36 @@ class DvisvgmConverter:
     name = "dvisvgm"
 
     def convert(self, request: ConvertRequest) -> ConversionResult:
+        return self._convert(request, page_count=1, batch=False)[0]
+
+    def convert_many(self, request: ConvertRequest) -> tuple[ConversionResult, ...]:
+        """Convert every compiled PDF page in one dvisvgm process."""
+        return self._convert(
+            request, page_count=request.compiled.page_count, batch=True
+        )
+
+    def _convert(
+        self, request: ConvertRequest, *, page_count: int, batch: bool
+    ) -> tuple[ConversionResult, ...]:
         if request.compiled.format != "pdf":
             raise ConfigurationError(
                 f"dvisvgm expects a PDF intermediate, got {request.compiled.format!r}"
             )
         executable = find_executable(self.name, request.executable or self.name)
-        output_path = request.workdir / "document.svg"
+        if page_count < 1:
+            raise ConfigurationError("compiled page_count must be positive")
+        output_pattern = request.workdir / (
+            "document-%p.svg" if batch else "document.svg"
+        )
         argv = (
             executable,
             "--pdf",
-            "--page=1",
+            f"--page=1-{page_count}" if batch else "--page=1",
             "--bbox=min",
             "--exact",
             "--no-fonts",
             *request.extra_args,
-            f"--output={output_path}",
+            f"--output={output_pattern}",
             str(request.compiled.path),
         )
         completed = run_process(
@@ -72,19 +87,30 @@ class DvisvgmConverter:
             timeout=request.timeout,
             error_type=ConversionError,
         )
-        if not output_path.is_file():
+        output_paths = (
+            tuple(
+                request.workdir / f"document-{page}.svg"
+                for page in range(1, page_count + 1)
+            )
+            if batch
+            else (request.workdir / "document.svg",)
+        )
+        if not all(path.is_file() for path in output_paths):
             raise ConversionError(
-                "converter reported success but did not create document.svg",
+                "converter reported success but did not create every SVG page",
                 argv=argv,
                 stdout=completed.stdout,
                 stderr=completed.stderr,
             )
-        return ConversionResult(
-            path=output_path,
-            converter=self.name,
-            argv=argv,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
+        return tuple(
+            ConversionResult(
+                path=path,
+                converter=self.name,
+                argv=argv,
+                stdout=completed.stdout,
+                stderr=completed.stderr,
+            )
+            for path in output_paths
         )
 
 

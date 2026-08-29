@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from collections.abc import Sequence
+from functools import cache
 from pathlib import Path
 from typing import TypeVar
 
@@ -19,6 +20,30 @@ def find_executable(tool: str, executable: str) -> str:
     if resolved is None:
         raise MissingExecutableError(tool, executable)
     return resolved
+
+
+@cache
+def tool_identity(executable: str, *, timeout: float = 10.0) -> str:
+    """Identify an installed tool for cache keys: its real path and version.
+
+    A cached fragment compiled by one TeX or dvisvgm installation must not be
+    served after that installation changes, so the identity of the executable
+    belongs in the cache key alongside the source. Probing is memoized per
+    process, and a tool that cannot report a version degrades to its path.
+    """
+    resolved = str(Path(shutil.which(executable) or executable).resolve())
+    try:
+        completed = subprocess.run(
+            [resolved, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return resolved
+    report = (completed.stdout or completed.stderr or "").strip().splitlines()
+    return f"{resolved}|{report[0].strip()}" if report else resolved
 
 
 def run_process(

@@ -31,6 +31,14 @@ documents, implement an SVG editor, or provide a GUI.
   tests must be explicitly enabled and skip cleanly when tools are absent.
 - Add a regression fixture or mocked-process test for every normalization,
   security, or command-construction bug.
+- Keep `docs/` in sync with user-visible code changes: update affected guides,
+  reference material, and examples in the same change. Build the site with
+  `uv run zensical build` (or `pixi run docs`) before reporting documentation
+  changes complete.
+- Keep `CHANGELOG.md` current for notable user-facing changes. Follow the
+  Keep a Changelog 1.1.0 format: add concise, human-readable entries under
+  `Unreleased`, grouped only as Added, Changed, Deprecated, Removed, Fixed, or
+  Security; move them into a dated release section when a version is released.
 
 ## Packaging and releases
 
@@ -40,9 +48,8 @@ documents, implement an SVG editor, or provide a GUI.
 - Build both wheel and sdist for package qualification. Build the Conda recipe
   when `conda-build` or a compatible builder is available.
 - Do not commit, tag, upload, or publish unless the user explicitly requests it.
-- A public release still requires the author to choose and add a license.
+- The project is distributed under the MIT License; keep the license metadata
+  and `LICENSE` file in sync for public releases.
 
-## Plan
-
-The complete initial implementation plan and acceptance criteria are maintained
-in `PLAN.md`. Update it when scope or completion status changes.
+Keep maintained behavior and examples in `README.md` and `docs/`; completed
+planning notes are not part of the long-lived project documentation.

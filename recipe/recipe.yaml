@@ -29,4 +29,9 @@ tests:
       pip_check: true
 
 about:
+  homepage: https://github.com/maiani/vectex
+  repository: https://github.com/maiani/vectex
+  documentation: https://maiani.github.io/vectex/
+  license: MIT
+  license_file: LICENSE
   summary: Render LaTeX or Typst as portable, editable SVG group fragments

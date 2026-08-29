@@ -16,6 +16,7 @@ from vectex import (
     TeXCompiler,
     TypstCompiler,
 )
+from vectex.compiler import _tex_document, resolve_math_mode, tex_body, textext_body
 from vectex.process import find_executable, run_process
 
 
@@ -54,7 +55,50 @@ def test_tex_compiler_constructs_safe_argv(
     assert "--extra" in seen[0]
     assert seen[0][-1].endswith("document.tex")
     tex = (tmp_path / "document.tex").read_text()
-    assert "\\(\\displaystyle x^2\\)" in tex
+    assert "\\vectexmeasure{0}{x^2}" in tex
+
+
+def test_default_document_crops_and_explicit_class_wins() -> None:
+    default = _tex_document("x", "")
+    explicit = _tex_document("x", r"\documentclass{article}")
+    assert r"\documentclass[border=0pt]{standalone}" in default
+    assert r"\usepackage{amsmath}" in default
+    assert r"\begin{preview}" in default
+    assert explicit.startswith(r"\documentclass{article}")
+    assert r"\begin{preview}" not in explicit
+
+
+def test_explicit_full_page_does_not_report_a_box_relative_baseline(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "vectex.compiler.find_executable", lambda _tool, _exe: "/bin/pdflatex"
+    )
+
+    def fake_run(argv, **_kwargs):
+        (tmp_path / "document.pdf").write_bytes(b"pdf")
+        (tmp_path / "document.vectex-metrics").write_text("0,4,1\n")
+        return completed(tuple(argv))
+
+    monkeypatch.setattr("vectex.compiler.run_process", fake_run)
+    result = TeXCompiler("pdflatex").compile(
+        CompileRequest(
+            source="x",
+            workdir=tmp_path,
+            timeout=1,
+            preamble=r"\documentclass{article}",
+        )
+    )
+    assert result.baseline_ratios == (None,)
+
+
+def test_split_is_automatically_made_inline_compatible() -> None:
+    source = r"\begin{split}a&=b\\&=c\end{split}"
+    assert resolve_math_mode(source, "auto") == "display"
+    body = tex_body(source, "auto")
+    assert r"\begin{aligned}" in body
+    assert r"\begin{split}" not in body
+    assert source in textext_body(source, "auto")
 
 
 def test_typst_compiler_constructs_argv(

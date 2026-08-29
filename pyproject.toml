@@ -8,16 +8,23 @@ version = "0.1.0"
 description = "Render LaTeX or Typst as portable, editable SVG group fragments"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Vectex contributors" }]
+authors = [{ name = "Andrea Maiani", email = "dev@andreamaiani.com" }]
+license = "MIT"
 keywords = ["latex", "typst", "svg", "vector-graphics"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
   "Topic :: Multimedia :: Graphics :: Graphics Conversion",
 ]
 dependencies = ["lxml>=5.0"]
+
+[project.urls]
+Documentation = "https://maiani.github.io/vectex/"
+Issues = "https://github.com/maiani/vectex/issues"
+Source = "https://github.com/maiani/vectex"
 
 [project.optional-dependencies]
 svg-py = ["svg.py>=1.5"]
@@ -31,6 +38,7 @@ dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.12",
+  "zensical>=0.0.57,<0.1",
   "types-lxml>=2025.3.30",
 ]
 
@@ -42,11 +50,14 @@ include = [
   "/src",
   "/tests",
   "/README.md",
+  "/CHANGELOG.md",
+  "/LICENSE",
   "/AGENTS.md",
-  "/PLAN.md",
+  "/docs",
   "/pixi.toml",
   "/pyproject.toml",
   "/recipe",
+  "/zensical.toml",
 ]
 
 [tool.pytest.ini_options]
