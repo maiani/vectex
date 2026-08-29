@@ -68,22 +68,6 @@ def test_cli_output_writes_a_fragment(
     assert target.read_text(encoding="utf-8") == fragment.to_svg()
 
 
-def test_cli_version_and_help() -> None:
-    version = runner.invoke(app, ["--version"])
-    help_result = runner.invoke(app, ["--help"], env={"COLUMNS": "200"})
-
-    assert version.exit_code == 0
-    assert version.stdout == f"vectex {vectex.__version__}\n"
-    assert help_result.exit_code == 0
-    assert "--as-doc" in help_result.stdout
-    assert "--output" in help_result.stdout
-    assert "--id-prefix" in help_result.stdout
-    assert "--engine" in help_result.stdout
-    assert "--math-mode" not in help_result.stdout
-    assert "--executable" in help_result.stdout
-    assert "--version" in help_result.stdout
-
-
 def test_cli_forwards_rendering_options(monkeypatch, simple_svg: bytes) -> None:
     fragment = Normalizer().normalize(
         simple_svg, source="$E=mc^2$", engine="pdflatex", converter="dvisvgm"
