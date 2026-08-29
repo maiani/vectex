@@ -12,7 +12,6 @@ from .exceptions import CompilationError, ConfigurationError
 from .process import find_executable, run_process
 
 MathMode: TypeAlias = Literal["auto", "inline", "display", "body"]
-MathModeInput: TypeAlias = bool | MathMode | Literal["raw"]
 
 _INNER_DISPLAY_ENVIRONMENTS = frozenset(
     {
@@ -56,7 +55,7 @@ class CompileRequest:
     workdir: Path
     timeout: float
     preamble: str = ""
-    math_mode: MathModeInput = "body"
+    math_mode: MathMode = "body"
     extra_args: tuple[str, ...] = ()
     executable: str | None = None
 
@@ -212,17 +211,11 @@ def compiler_from_name(engine: str) -> Compiler:
     return TeXCompiler(engine)
 
 
-def resolve_math_mode(source: str, math_mode: MathModeInput) -> MathMode:
-    """Resolve booleans, the deprecated ``"raw"`` spelling, and automatic mode."""
-    if math_mode is True:
-        return "inline"
-    if math_mode is False:
-        return "body"
-    if math_mode == "raw":  # accepted spelling of the document-body mode
-        return "body"
+def resolve_math_mode(source: str, math_mode: MathMode) -> MathMode:
+    """Resolve automatic mode to a concrete compiler mode."""
     if math_mode not in {"auto", "inline", "display", "body"}:
         raise ConfigurationError(
-            "math_mode must be True, False, 'auto', 'inline', 'display', or 'body'"
+            "math_mode must be 'auto', 'inline', 'display', or 'body'"
         )
     if math_mode != "auto":
         return math_mode
@@ -234,7 +227,7 @@ def resolve_math_mode(source: str, math_mode: MathModeInput) -> MathMode:
     return "inline"
 
 
-def tex_body(source: str, math_mode: MathModeInput) -> str:
+def tex_body(source: str, math_mode: MathMode) -> str:
     """Return the body compiled by Vectex's crop-compatible TeX template."""
     resolved = resolve_math_mode(source, math_mode)
     if resolved == "inline":
@@ -246,7 +239,7 @@ def tex_body(source: str, math_mode: MathModeInput) -> str:
     return source
 
 
-def textext_body(source: str, math_mode: MathModeInput) -> str:
+def textext_body(source: str, math_mode: MathMode) -> str:
     """Return a TexText-compilable body while retaining the user's source."""
     resolved = resolve_math_mode(source, math_mode)
     if resolved == "inline":
@@ -256,7 +249,7 @@ def textext_body(source: str, math_mode: MathModeInput) -> str:
     return source
 
 
-def _tex_document(source: str, preamble: str, math_mode: MathModeInput = "body") -> str:
+def _tex_document(source: str, preamble: str, math_mode: MathMode = "body") -> str:
     """Build a single-expression document (kept for tests and extensions)."""
     return _tex_document_many((source,), preamble, (math_mode,))
 
@@ -264,7 +257,7 @@ def _tex_document(source: str, preamble: str, math_mode: MathModeInput = "body")
 def _tex_document_many(
     sources: Sequence[str],
     preamble: str,
-    math_modes: Sequence[MathModeInput],
+    math_modes: Sequence[MathMode],
 ) -> str:
     explicit_class = _contains_document_class(preamble)
     cropped = _uses_cropped_pages(preamble)
@@ -313,7 +306,7 @@ _METRICS_PREAMBLE = r"""
 """
 
 
-def _measured_tex_body(index: int, source: str, math_mode: MathModeInput) -> str:
+def _measured_tex_body(index: int, source: str, math_mode: MathMode) -> str:
     resolved = resolve_math_mode(source, math_mode)
     body = tex_body(source, resolved)
     if resolved in {"inline", "display"} or (

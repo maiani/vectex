@@ -33,4 +33,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   TexText, so `$...$` marks mathematics and prose stays upright. Bare
   expressions need `render_math()` or an explicit mode, and forgetting the
   dollar signs raises a compilation error instead of silently setting words in
-  math italic. `"raw"` remains accepted as a spelling of `"body"`.
+  math italic. The earlier `"raw"` spelling of the body mode and the boolean
+  spellings `True` and `False` were removed; pass an explicit mode string.

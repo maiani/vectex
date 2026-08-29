@@ -52,13 +52,12 @@ prose. `render_math()` supplies the wrapper for a bare expression, in display
 style with `display=True`. Forgetting the dollar signs therefore raises a
 compilation error rather than silently setting words in math italic.
 
-Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`; `"raw"` is
-accepted as a spelling of `"body"`, and the booleans `True` and `False` mean
-inline and body. `math_mode="auto"` infers a wrapper and recognizes AMS
-environments: inner environments such as `split` are made valid automatically,
-while complete environments such as `align` are used unwrapped. `amsmath` is
-loaded by default, so `\text{...}` works in math expressions. Typst source is
-passed through.
+Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`.
+`math_mode="auto"` infers a wrapper and recognizes AMS environments: inner
+environments such as `split` are made valid automatically, while complete
+environments such as `align` are used unwrapped. `amsmath` is loaded by
+default, so `\text{...}` works in math expressions. Typst source is passed
+through.
 
 The default TeX template uses a zero-border `standalone` page cropped to each
 fragment. A `\documentclass` supplied in `preamble` takes precedence, so an

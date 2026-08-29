@@ -18,7 +18,6 @@ from .compiler import (
     Compiler,
     CompileRequest,
     MathMode,
-    MathModeInput,
     compiler_from_name,
     normalize_args,
     resolve_math_mode,
@@ -55,7 +54,7 @@ class RenderItem:
     size_pt: float | None = None
     timeout: float | None = None
     preamble: str | None = None
-    math_mode: MathModeInput | None = None
+    math_mode: MathMode | None = None
     compiler_args: Sequence[str] | None = None
     converter_args: Sequence[str] | None = None
     executable_overrides: Mapping[str, str] | None = None
@@ -99,7 +98,7 @@ def render(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
-    math_mode: MathModeInput = "body",
+    math_mode: MathMode = "body",
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,
@@ -165,7 +164,7 @@ def render_many(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
-    math_mode: MathModeInput = "body",
+    math_mode: MathMode = "body",
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,

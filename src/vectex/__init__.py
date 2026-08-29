@@ -6,7 +6,6 @@ from .compiler import (
     Compiler,
     CompileRequest,
     MathMode,
-    MathModeInput,
     TeXCompiler,
     TypstCompiler,
 )
@@ -45,7 +44,6 @@ __all__ = [
     "DvisvgmConverter",
     "InvalidSVGError",
     "MathMode",
-    "MathModeInput",
     "MissingExecutableError",
     "Normalizer",
     "RenderItem",

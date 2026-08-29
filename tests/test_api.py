@@ -233,12 +233,17 @@ def test_default_math_mode_is_the_document_body(simple_svg: bytes) -> None:
     assert "\\\\(\\\\displaystyle" not in fragment.to_svg()
 
 
-def test_raw_is_accepted_as_the_body_mode(simple_svg: bytes) -> None:
-    compiler = FakeCompiler()
-    vectex.render(
-        "x^2", engine=compiler, converter=FakeConverter(simple_svg), math_mode="raw"
-    )
-    assert compiler.request.math_mode == "body"
+@pytest.mark.parametrize("math_mode", ["raw", True, False])
+def test_removed_mode_spellings_are_rejected(
+    simple_svg: bytes, math_mode: object
+) -> None:
+    with pytest.raises(vectex.ConfigurationError, match="math_mode"):
+        vectex.render(
+            "x^2",
+            engine=FakeCompiler(),
+            converter=FakeConverter(simple_svg),
+            math_mode=math_mode,
+        )
 
 
 @pytest.mark.parametrize("display, expected", [(False, "inline"), (True, "display")])

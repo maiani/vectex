@@ -53,10 +53,8 @@ label = vectex.render_math(r"\omega_c")
 heading = vectex.render_math(r"\sum_i x_i", display=True)
 ```
 
-Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`; `"raw"` is
-accepted as a spelling of `"body"`, and the compatible booleans `True` and
-`False` mean inline and body. `amsmath` is loaded automatically, so `\text{...}`
-works inside math mode.
+Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`. `amsmath`
+is loaded automatically, so `\text{...}` works inside math mode.
 
 `math_mode="auto"` infers a wrapper from the source: it recognizes AMS
 environments, adapts inner display environments such as `split` to a
