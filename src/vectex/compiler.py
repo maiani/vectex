@@ -234,7 +234,25 @@ _METRICS_PREAMBLE = r"""
 def _measured_tex_body(index: int, source: str) -> str:
     if _is_box_compatible_body(source):
         return f"\\vectexmeasure{{{index}}}{{{source}}}"
+    tightened = _tightened_display_body(source)
+    if tightened is not None:
+        return tightened
+    # Display environments otherwise contribute the surrounding line width to
+    # the preview page.  A zero-width local paragraph lets preview/dvisvgm crop
+    # to their painted content.
+    if source.lstrip().startswith(r"\begin{"):
+        return f"{{\\hsize=0pt\\displaywidth=0pt\\relax\n{source}\n}}"
     return source
+
+
+def _tightened_display_body(source: str) -> str | None:
+    """Return tight, visually equivalent framing for outer display delimiters."""
+    stripped = source.strip()
+    if stripped.startswith("$$") and stripped.endswith("$$") and len(stripped) >= 4:
+        return rf"\(\displaystyle {stripped[2:-2]}\)"
+    if stripped.startswith(r"\[") and stripped.endswith(r"\]"):
+        return rf"\(\displaystyle {stripped[2:-2]}\)"
+    return None
 
 
 def _is_box_compatible_body(source: str) -> bool:

@@ -48,6 +48,7 @@ def test_real_display_math_bodies(source: str) -> None:
         pytest.skip("pdflatex and dvisvgm are required")
     fragment = vectex.render(source)
     assert fragment.width > 0
+    assert fragment.width < 100
     assert fragment.height > 0
     assert fragment.baseline is None
 

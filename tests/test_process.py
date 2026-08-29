@@ -116,7 +116,31 @@ def test_display_and_vertical_tex_bodies_are_not_boxed(source: str) -> None:
     assert not _is_box_compatible_body(source)
     document = _tex_document(source, "")
     assert "\\vectexmeasure{0}" not in document
-    assert source in document
+
+
+@pytest.mark.parametrize(
+    "source",
+    [r"\begin{align*}a&=b\end{align*}"],
+)
+def test_display_math_uses_a_tight_local_paragraph(source: str) -> None:
+    document = _tex_document(source, "")
+    assert r"\hsize=0pt\displaywidth=0pt" in document
+
+
+@pytest.mark.parametrize(
+    ("source", "tight"),
+    [("$$x$$", r"\(\displaystyle x\)"), (r"\[x\]", r"\(\displaystyle x\)")],
+)
+def test_outer_display_delimiters_use_tight_equivalent_framing(
+    source: str, tight: str
+) -> None:
+    document = _tex_document(source, "")
+    assert tight in document
+
+
+def test_vertical_prose_does_not_use_a_zero_width_paragraph() -> None:
+    document = _tex_document("first paragraph\n\nsecond paragraph", "")
+    assert r"\hsize=0pt\displaywidth=0pt" not in document
 
 
 def test_typst_compiler_constructs_argv(
