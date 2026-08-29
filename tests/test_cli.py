@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import vectex
 from vectex.cli import app
 from vectex.exceptions import MissingExecutableError
 from vectex.normalizer import Normalizer
