@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="12pt"
+     height="8pt"
+     viewBox="-2 3 12 8">
+  <defs>
+    <g id="glyph">
+      <path id="stroke" d="M0 0h4v2z"/>
+    </g>
+    <clipPath id="clip">
+      <use xlink:href="#glyph"/>
+    </clipPath>
+    <linearGradient id="gradient">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+  </defs>
+  <g id="visible" clip-path="url(#clip)"
+     style="fill:url(#gradient);stroke:none">
+    <use href="#glyph"/>
+  </g>
+</svg>
