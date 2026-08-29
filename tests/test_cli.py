@@ -70,7 +70,7 @@ def test_cli_output_writes_a_fragment(
 
 def test_cli_version_and_help() -> None:
     version = runner.invoke(app, ["--version"])
-    help_result = runner.invoke(app, ["--help"])
+    help_result = runner.invoke(app, ["--help"], env={"COLUMNS": "120"})
 
     assert version.exit_code == 0
     assert version.stdout == f"vectex {vectex.__version__}\n"
