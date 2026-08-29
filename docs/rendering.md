@@ -26,16 +26,17 @@ The bundled pathway compiles each source page to PDF and converts it with
 different intermediate format or SVG converter can provide their own
 `Compiler` and `Converter` implementations.
 
-TeX rendering derives `fragment.baseline` from the measured height and depth of
-the typeset box. Typst does not yet provide that measurement, so a Typst
-fragment has no baseline unless the caller supplies `baseline=` explicitly.
+For inline or prose TeX bodies, Vectex derives `fragment.baseline` from the
+measured height and depth of the typeset box. Display and other vertical bodies
+cannot be measured in that box and therefore have no baseline unless the caller
+supplies `baseline=` explicitly. Typst likewise has no derived baseline.
 
 To make executable locations explicit, pass a mapping keyed by the component
 name:
 
 ```python
 fragment = vectex.render(
-    "x+y",
+    "$x+y$",
     executable_overrides={
         "pdflatex": "/opt/texlive/bin/pdflatex",
         "dvisvgm": "/opt/texlive/bin/dvisvgm",
@@ -59,32 +60,22 @@ vectex '$E = mc^2$' \
 
 ## TeX input
 
-The default `math_mode="body"` treats source as a TeX document body, the same
-convention TexText uses: `$...$` marks mathematics and everything else is
-prose. A label is therefore written the way it would be written in a paper, and
-forgetting the dollar signs around an expression raises a compilation error
-rather than silently typesetting words in math italic.
-
-For a bare expression, `render_math()` supplies the wrapper:
+TeX source is always a literal document body, the same convention TexText uses.
+Write a label the way it would be written in a paper:
 
 ```python
-label = vectex.render_math(r"\omega_c")
-heading = vectex.render_math(r"\sum_i x_i", display=True)
+label = vectex.render(r"$\omega_c$")
+heading = vectex.render(r"\[\sum_i x_i\]")
 ```
 
-Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`. `amsmath`
-is loaded automatically, so `\text{...}` works inside math mode.
-
-`math_mode="auto"` infers a wrapper from the source: it recognizes AMS
-environments, adapts inner display environments such as `split` to a
-crop-compatible form while their original source remains in metadata and
-TexText's editable body, and uses complete environments such as `align`
-unwrapped.
+`$...$` marks inline mathematics and `\[...\]` marks display mathematics.
+Prefer `\[...\]` to the plain-TeX `$$...$$` spelling. `amsmath` is loaded
+automatically, so complete display environments can be used directly and inner
+environments can be given their normal TeX context:
 
 ```python
-fragment = vectex.render(
-    r"\begin{split} a &= b \\ c &= d \end{split}",
-)
+aligned = vectex.render(r"\[\begin{aligned}a &= b \\ c &= d\end{aligned}\]")
+equations = vectex.render(r"\begin{align*}a &= b \\ c &= d\end{align*}")
 ```
 
 TeX uses a zero-border `standalone` document cropped to the content. An explicit

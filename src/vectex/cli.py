@@ -10,7 +10,6 @@ import typer
 
 from . import __version__
 from .api import render
-from .compiler import MathMode
 from .exceptions import VectexError
 
 
@@ -55,23 +54,20 @@ def main(
         typer.Option(
             "--output",
             "-o",
-            "--as-doc",
-            help=(
-                "Write a standalone SVG document instead of printing its <g> fragment."
-            ),
+            help="Write the selected SVG form to PATH instead of standard output.",
         ),
     ] = None,
+    as_doc: Annotated[
+        bool,
+        typer.Option(
+            "--as-doc",
+            help="Output a standalone SVG document instead of an SVG <g> fragment.",
+        ),
+    ] = False,
     engine: Annotated[
         str,
         typer.Option("--engine", help="Rendering engine to invoke."),
     ] = "pdflatex",
-    math_mode: Annotated[
-        MathMode,
-        typer.Option(
-            "--math-mode",
-            help="Interpret source as a TeX body, inline or display math, or infer it.",
-        ),
-    ] = "body",
     preamble: Annotated[
         str,
         typer.Option("--preamble", help="TeX preamble additions."),
@@ -119,7 +115,6 @@ def main(
         fragment = render(
             source,
             engine=engine,
-            math_mode=math_mode,
             preamble=preamble,
             size_pt=size_pt,
             scale=scale,
@@ -129,7 +124,8 @@ def main(
         )
     except VectexError as exc:
         raise typer.BadParameter(str(exc)) from exc
+    serialized = fragment.to_svg_document() if as_doc else fragment.to_svg()
     if output is None:
-        typer.echo(fragment.to_svg())
+        typer.echo(serialized, nl=not serialized.endswith("\n"))
     else:
-        fragment.write_svg_document(output)
+        output.write_text(serialized, encoding="utf-8")

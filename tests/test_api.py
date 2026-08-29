@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
 import pytest
@@ -95,10 +96,9 @@ def test_render_vertical_slice_and_temp_cleanup(simple_svg: bytes) -> None:
     compiler = FakeCompiler()
     converter = FakeConverter(simple_svg)
     fragment = vectex.render(
-        "E = mc^2",
+        "$E = mc^2$",
         engine=compiler,
         converter=converter,
-        math_mode="inline",
         scale=1.5,
         timeout=9,
         preamble="\\usepackage{amsmath}",
@@ -107,14 +107,14 @@ def test_render_vertical_slice_and_temp_cleanup(simple_svg: bytes) -> None:
         id_prefix="api",
         textext_preamble_file="/opt/vectex/preamble.tex",
     )
-    assert fragment.source == "E = mc^2"
+    assert fragment.source == "$E = mc^2$"
     assert fragment.width == 15
     assert compiler.request.timeout == 9
     assert compiler.request.extra_args == ("--trusted",)
     assert converter.request.extra_args == ("--exact",)
     assert compiler.workdir is not None
     assert not compiler.workdir.exists()
-    assert "\\\\(\\\\displaystyle E = mc^2\\\\)" in fragment.to_svg()
+    assert "$E = mc^2$" in fragment.to_svg()
 
 
 @pytest.mark.parametrize(
@@ -224,50 +224,20 @@ class IdentifiedConverter(BatchConverter):
         return "fake-converter-1"
 
 
-def test_default_math_mode_is_the_document_body(simple_svg: bytes) -> None:
+def test_source_is_a_literal_document_body(simple_svg: bytes) -> None:
     compiler = FakeCompiler()
     fragment = vectex.render(
-        "x^2", engine=compiler, converter=FakeConverter(simple_svg)
+        "$x^2$", engine=compiler, converter=FakeConverter(simple_svg)
     )
-    assert compiler.request.math_mode == "body"
+    assert compiler.request.source == "$x^2$"
     assert "\\\\(\\\\displaystyle" not in fragment.to_svg()
 
 
-@pytest.mark.parametrize("math_mode", ["raw", True, False])
-def test_removed_mode_spellings_are_rejected(
-    simple_svg: bytes, math_mode: object
-) -> None:
-    with pytest.raises(vectex.ConfigurationError, match="math_mode"):
-        vectex.render(
-            "x^2",
-            engine=FakeCompiler(),
-            converter=FakeConverter(simple_svg),
-            math_mode=math_mode,
-        )
-
-
-@pytest.mark.parametrize("display, expected", [(False, "inline"), (True, "display")])
-def test_render_math_sets_the_mode(
-    simple_svg: bytes, display: bool, expected: str
-) -> None:
-    compiler = FakeCompiler()
-    vectex.render_math(
-        "x^2",
-        engine=compiler,
-        converter=FakeConverter(simple_svg),
-        display=display,
-    )
-    assert compiler.request.math_mode == expected
-
-
-def test_render_math_rejects_an_explicit_mode(simple_svg: bytes) -> None:
-    with pytest.raises(vectex.ConfigurationError, match="math_mode"):
-        vectex.render_math(
-            "x",
-            engine=FakeCompiler(),
-            converter=FakeConverter(simple_svg),
-            math_mode="body",
-        )
+def test_public_rendering_contract_has_no_math_mode() -> None:
+    assert "math_mode" not in inspect.signature(vectex.render).parameters
+    assert "math_mode" not in inspect.signature(vectex.render_many).parameters
+    assert "math_mode" not in vectex.RenderItem.__dataclass_fields__
+    assert "math_mode" not in vectex.CompileRequest.__dataclass_fields__
 
 
 def test_render_many_accepts_per_item_overrides(simple_svg: bytes) -> None:
@@ -276,7 +246,7 @@ def test_render_many_accepts_per_item_overrides(simple_svg: bytes) -> None:
     small, large = vectex.render_many(
         [
             vectex.RenderItem("x", size_pt=5),
-            vectex.RenderItem("y", size_pt=10, math_mode="inline"),
+            vectex.RenderItem("y", size_pt=10),
         ],
         engine=compiler,
         converter=converter,
@@ -320,12 +290,11 @@ def test_refresh_recompiles_and_replaces_the_record(
 def test_render_accepts_a_render_item(simple_svg: bytes) -> None:
     compiler = FakeCompiler()
     fragment = vectex.render(
-        vectex.RenderItem("x", size_pt=5, math_mode="inline"),
+        vectex.RenderItem("x", size_pt=5),
         engine=compiler,
         converter=FakeConverter(simple_svg),
         size_pt=20,
     )
-    assert compiler.request.math_mode == "inline"
     assert fragment.scale == 0.5
 
 
@@ -357,7 +326,7 @@ def test_render_many_shares_one_run_for_size_only_differences(
         [
             vectex.RenderItem("x", size_pt=5),
             vectex.RenderItem("y", size_pt=10),
-            vectex.RenderItem("z", math_mode="inline"),
+            vectex.RenderItem("z"),
         ],
         engine=compiler,
         converter=converter,

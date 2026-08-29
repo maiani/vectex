@@ -12,20 +12,25 @@ metadata = fragment.metadata
 ```
 
 The public fields are `source`, `engine`, `converter`, `scale`, `width`,
-`height`, `view_box`, and `baseline`. Built-in TeX rendering derives the
-baseline from measured box height and depth; it is expressed downward from the
-fragment's top edge and scales with the fragment.
+`height`, `view_box`, and `baseline`. For box-compatible inline and prose TeX,
+the baseline is derived from measured height and depth; it is expressed
+downward from the fragment's top edge and scales with the fragment. Display and
+other vertical TeX bodies, and Typst sources, have `baseline=None` unless the
+caller supplies one explicitly.
 
 ## Placing a fragment
 
-`width`, `height`, and `baseline` are the whole placement interface: the
-fragment origin is its cropped top-left corner, so an anchor becomes an offset
-and a wrapper transform. A caller that draws labels usually wants this once:
+`width`, `height`, and the optional `baseline` are the whole placement
+interface: the fragment origin is its cropped top-left corner, so an anchor
+becomes an offset and a wrapper transform. A caller that draws inline labels
+usually wants this once:
 
 ```python
 def label(drawing, x, y, source, *, anchor="middle", valign="baseline"):
     """Place a label with (x, y) on one edge of its box."""
     fragment = vectex.render(source, size_pt=7, cache_dir=".cache")
+    if valign == "baseline" and fragment.baseline is None:
+        raise ValueError("this source has no measurable baseline")
     dx = {"start": 0.0, "middle": -fragment.width / 2, "end": -fragment.width}[anchor]
     dy = {
         "top": 0.0,
@@ -60,8 +65,10 @@ served directly, and `write_svg_document(path)` writes that same document to a
 file; neither needs an object-model backend.
 
 The same two forms are available from the command line: `vectex '$E = mc^2$'`
-prints the fragment, while `vectex '$E = mc^2$' --output einstein.svg` (or
-`--as-doc einstein.svg`) writes a standalone document.
+prints the fragment, while `vectex '$E = mc^2$' --as-doc` prints a standalone
+document. `-o PATH` writes the selected form to a file, so
+`vectex '$E = mc^2$' --as-doc -o einstein.svg` writes a standalone document
+and `vectex '$E = mc^2$' -o label.svg` writes the fragment.
 
 When their optional dependencies are installed, `to_svg_py()` and
 `to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`.

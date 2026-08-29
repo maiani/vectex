@@ -41,6 +41,7 @@ def test_one_group_and_view_box_normalization(complex_svg: bytes) -> None:
     assert fragment.view_box == (0.0, 0.0, 24.0, 16.0)
     viewport = root.find(f"{{{SVG_NS}}}g")
     assert viewport is not None
+    assert viewport.get("id") == "fixture-viewport"
     assert viewport.get("transform") == "matrix(2 0 0 2 4 -6)"
 
 
@@ -52,6 +53,7 @@ def test_nested_definitions_and_all_reference_forms_are_rewritten(
 
     assert ids == {
         "fixture-root",
+        "fixture-viewport",
         "fixture-0",
         "fixture-1",
         "fixture-2",

@@ -32,7 +32,7 @@ python -m pip install 'vectex[all]'
 ```python
 import vectex
 
-fragment = vectex.render(r"E = mc^2", engine="pdflatex")
+fragment = vectex.render(r"$E = mc^2$", engine="pdflatex")
 
 print(fragment.width, fragment.height, fragment.view_box)
 svg_group = fragment.to_svg()

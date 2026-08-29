@@ -146,6 +146,7 @@ class Normalizer:
         group.append(_metadata_element(metadata))
 
         viewport = etree.SubElement(group, f"{{{SVG_NS}}}g")
+        viewport.set("id", f"{prefix}-viewport")
         matrix = (
             scale,
             0.0,

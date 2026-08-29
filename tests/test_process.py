@@ -16,7 +16,7 @@ from vectex import (
     TeXCompiler,
     TypstCompiler,
 )
-from vectex.compiler import _tex_document, resolve_math_mode, tex_body, textext_body
+from vectex.compiler import _is_box_compatible_body, _tex_document
 from vectex.process import find_executable, run_process
 
 
@@ -92,13 +92,31 @@ def test_explicit_full_page_does_not_report_a_box_relative_baseline(
     assert result.baseline_ratios == (None,)
 
 
-def test_split_is_automatically_made_inline_compatible() -> None:
-    source = r"\begin{split}a&=b\\&=c\end{split}"
-    assert resolve_math_mode(source, "auto") == "display"
-    body = tex_body(source, "auto")
-    assert r"\begin{aligned}" in body
-    assert r"\begin{split}" not in body
-    assert source in textext_body(source, "auto")
+@pytest.mark.parametrize(
+    "source",
+    ["text $x$", r"\(x\)", r"$\begin{pmatrix}a&b\end{pmatrix}$"],
+)
+def test_inline_tex_bodies_are_box_compatible(source: str) -> None:
+    assert _is_box_compatible_body(source)
+    document = _tex_document(source, "")
+    assert f"\\vectexmeasure{{0}}{{{source}}}" in document
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "$$x$$",
+        r"\[x\]",
+        r"\begin{align*}a&=b\end{align*}",
+        "first paragraph\n\nsecond paragraph",
+        r"first\par second",
+    ],
+)
+def test_display_and_vertical_tex_bodies_are_not_boxed(source: str) -> None:
+    assert not _is_box_compatible_body(source)
+    document = _tex_document(source, "")
+    assert "\\vectexmeasure{0}" not in document
+    assert source in document
 
 
 def test_typst_compiler_constructs_argv(

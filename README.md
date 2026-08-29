@@ -1,5 +1,10 @@
 # vectex
 
+[![Test](https://github.com/maiani/vectex/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/maiani/vectex/actions/workflows/test.yml)
+[![PyPI](https://img.shields.io/pypi/v/vectex.svg)](https://pypi.org/project/vectex/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
+
 `vectex` compiles LaTeX expressions or Typst source and returns one portable SVG
 `<g>` fragment. It is a library-level reimplementation of the rendering and
 normalization boundary behind TexText: it does not require Inkscape or access to
@@ -38,11 +43,18 @@ fragment on standard output:
 vectex '$E = mc^2$'
 ```
 
-Use `--output` (or the more explicit `--as-doc`) to write a complete, openable
-SVG document instead:
+Pass `--as-doc` to emit a complete, openable SVG document rather than a
+fragment. Without `-o`, either form is written to standard output:
 
 ```console
-vectex '$E = mc^2$' --output einstein.svg
+vectex '$E = mc^2$' --as-doc > einstein.svg
+```
+
+Use `--output` (or `-o`) to write the selected form to a file:
+
+```console
+vectex '$E = mc^2$' -o einstein-fragment.svg
+vectex '$E = mc^2$' --as-doc -o einstein.svg
 ```
 
 Use `--executable NAME=PATH` to override a tool location; repeat it for both
@@ -58,7 +70,7 @@ fragment = vectex.render(
     r"mass $m$ and energy $E = mc^2$",
     engine="pdflatex",
 )
-expression = vectex.render_math(r"E = mc^2")
+expression = vectex.render(r"$E = mc^2$")
 
 svg_text = fragment.to_svg()
 lxml_group = fragment.to_lxml()
@@ -69,18 +81,12 @@ print(fragment.width, fragment.height, fragment.view_box)
 print(fragment.source, fragment.engine, fragment.metadata)
 ```
 
-By default, `math_mode="body"` treats LaTeX input as a TeX document body, the
-convention TexText uses: `$...$` marks mathematics and everything else is
-prose. `render_math()` supplies the wrapper for a bare expression, in display
-style with `display=True`. Forgetting the dollar signs therefore raises a
-compilation error rather than silently setting words in math italic.
-
-Explicit modes are `"inline"`, `"display"`, `"body"`, and `"auto"`.
-`math_mode="auto"` infers a wrapper and recognizes AMS environments: inner
-environments such as `split` are made valid automatically, while complete
-environments such as `align` are used unwrapped. `amsmath` is loaded by
-default, so `\text{...}` works in math expressions. Typst source is passed
-through.
+TeX input is always a literal document body, the same convention TexText uses:
+`$...$` marks inline mathematics, `\[...\]` marks display mathematics, and
+everything else is prose. Complete environments such as `align*` can be used
+directly; inner environments need their normal TeX context. `amsmath` is loaded
+by default, so `\text{...}` works in math expressions. Typst source is passed
+through unchanged.
 
 The default TeX template uses a zero-border `standalone` page cropped to each
 fragment. A `\documentclass` supplied in `preamble` takes precedence, so an
@@ -137,19 +143,16 @@ Insert the outer group itself into an SVG and select that whole group before
 opening TexText. Selecting only a nested path or subgroup is intentionally
 rejected by TexText.
 
-In the default body mode, the stored TexText `text` is the source itself, since
-TexText's compiler also treats it as a document body. For the math modes,
-TexText's `text` field instead contains the compilable `\(\displaystyle ...\)`
-wrapper, while the original input remains unchanged in `fragment.source` and
-Vectex's namespaced `<metadata>` child, so a bare `E = mc^2` still recompiles
-successfully in TexText.
+The stored TexText `text` is the source itself, since both tools treat it as a
+document body. The same `$...$`, `\[...\]`, and environment syntax therefore
+recompiles without translation when the object is edited in TexText.
 
 TexText represents its preamble as a file path, while Vectex accepts preamble
 content. If re-editing must use the same custom preamble, pass both values:
 
 ```python
 fragment = vectex.render(
-    r"\operatorname{rank}(A)",
+    r"$\operatorname{rank}(A)$",
     preamble=r"\usepackage{amsmath}",
     textext_preamble_file="/absolute/shared/packages.tex",
 )
@@ -168,7 +171,7 @@ testable:
 
 ```python
 fragment = vectex.render(
-    "x+y",
+    "$x+y$",
     executable_overrides={
         "pdflatex": "/opt/texlive/bin/pdflatex",
         "dvisvgm": "/opt/texlive/bin/dvisvgm",
@@ -189,10 +192,10 @@ pass component objects instead of built-in names.
 ## Batch rendering and disk cache
 
 `render_many([a, b, ...])` shares one compiler and one dvisvgm invocation while
-preserving each expression's crop and baseline. A source may also be a
-`RenderItem` carrying any option that shapes its fragment; those left as `None`
-take the batch value. Items that share a compilation are grouped and rendered
-together, so a batch of labels differing only in size still costs one
+preserving each expression's crop and measurable baseline. A source may also be
+a `RenderItem` carrying any option that shapes its fragment; those left as
+`None` take the batch value. Items that share a compilation are grouped and
+rendered together, so a batch of labels differing only in size still costs one
 invocation, while an item with its own preamble or engine forms its own group.
 Fragments are returned in input order, and `render()` accepts a `RenderItem`
 as well. `cache_dir`, `refresh`, and `unique_ids` describe how a call runs
@@ -216,7 +219,7 @@ A successful render returns exactly one SVG `<g>` root with:
 - a deterministic input-derived ID prefix and rewritten `href`, `xlink:href`, and
   `url(#...)` references, including inline style attributes;
 - the source viewport represented by an inner matrix transform;
-- normalized width, height, view box, scale, and derived baseline properties;
+- normalized width, height, view box, scale, and measurable baseline properties;
 - inheritable default black glyph fills, so `fill` on an enclosing SVG group
   recolours a label, while explicitly authored non-black colours are preserved;
 - deterministic repeated serialization of that fragment;

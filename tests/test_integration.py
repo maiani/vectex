@@ -19,7 +19,7 @@ pytestmark = [
 def test_real_pdflatex_and_dvisvgm() -> None:
     if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
         pytest.skip("pdflatex and dvisvgm are required")
-    fragment = vectex.render_math(r"E = mc^2", engine="pdflatex")
+    fragment = vectex.render(r"$E = mc^2$", engine="pdflatex")
     assert fragment.width > 0
     assert fragment.width < 100
     assert fragment.height < 100
@@ -31,22 +31,37 @@ def test_real_document_body_mixes_prose_and_mathematics() -> None:
     if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
         pytest.skip("pdflatex and dvisvgm are required")
     fragment = vectex.render(r"energy $E = mc^2$", engine="pdflatex")
-    assert fragment.width > vectex.render_math(r"E = mc^2").width
+    assert fragment.width > vectex.render(r"$E = mc^2$").width
     assert fragment.baseline is not None
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        r"$$E = mc^2$$",
+        r"\[E = mc^2\]",
+        r"\begin{align*}E &= mc^2\end{align*}",
+    ],
+)
+def test_real_display_math_bodies(source: str) -> None:
+    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
+        pytest.skip("pdflatex and dvisvgm are required")
+    fragment = vectex.render(source)
+    assert fragment.width > 0
+    assert fragment.height > 0
+    assert fragment.baseline is None
 
 
 def test_real_split_and_batch_match_individual_renders() -> None:
     if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
         pytest.skip("pdflatex and dvisvgm are required")
     items = [
-        vectex.RenderItem("x", math_mode="inline"),
-        vectex.RenderItem("g", math_mode="inline"),
-        vectex.RenderItem(r"\begin{split}a&=b+c\\&=d\end{split}", math_mode="auto"),
+        vectex.RenderItem("$x$"),
+        vectex.RenderItem("$g$"),
+        vectex.RenderItem(r"$\begin{aligned}a&=b+c\\&=d\end{aligned}$"),
     ]
     batch = vectex.render_many(items)
-    individual = tuple(
-        vectex.render(item.source, math_mode=item.math_mode) for item in items
-    )
+    individual = tuple(vectex.render(item.source) for item in items)
     assert [fragment.to_svg() for fragment in batch] == [
         fragment.to_svg() for fragment in individual
     ]
@@ -58,8 +73,8 @@ def test_real_batch_mixes_sizes_in_one_compilation() -> None:
         pytest.skip("pdflatex and dvisvgm are required")
     small, large = vectex.render_many(
         [
-            vectex.RenderItem("x", size_pt=5, math_mode="inline"),
-            vectex.RenderItem("x", size_pt=10, math_mode="inline"),
+            vectex.RenderItem("$x$", size_pt=5),
+            vectex.RenderItem("$x$", size_pt=10),
         ]
     )
     assert large.width == pytest.approx(2 * small.width)

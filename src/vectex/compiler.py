@@ -6,44 +6,11 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol, TypeAlias, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from .exceptions import CompilationError, ConfigurationError
 from .process import find_executable, run_process
 
-MathMode: TypeAlias = Literal["auto", "inline", "display", "body"]
-
-_INNER_DISPLAY_ENVIRONMENTS = frozenset(
-    {
-        "aligned",
-        "alignedat",
-        "bmatrix",
-        "cases",
-        "gathered",
-        "matrix",
-        "pmatrix",
-        "smallmatrix",
-        "split",
-        "vmatrix",
-        "Vmatrix",
-    }
-)
-_TOP_LEVEL_DISPLAY_ENVIRONMENTS = frozenset(
-    {
-        "align",
-        "align*",
-        "alignat",
-        "alignat*",
-        "equation",
-        "equation*",
-        "flalign",
-        "flalign*",
-        "gather",
-        "gather*",
-        "multline",
-        "multline*",
-    }
-)
 _DOCUMENT_CLASS_RE = re.compile(r"\\documentclass\s*(?:\[([^]]*)\]\s*)?\{([^}]+)\}")
 
 
@@ -55,7 +22,6 @@ class CompileRequest:
     workdir: Path
     timeout: float
     preamble: str = ""
-    math_mode: MathMode = "body"
     extra_args: tuple[str, ...] = ()
     executable: str | None = None
 
@@ -114,7 +80,6 @@ class TeXCompiler:
             _tex_document_many(
                 tuple(item.source for item in requests),
                 request.preamble,
-                tuple(item.math_mode for item in requests),
             ),
             encoding="utf-8",
         )
@@ -211,53 +176,14 @@ def compiler_from_name(engine: str) -> Compiler:
     return TeXCompiler(engine)
 
 
-def resolve_math_mode(source: str, math_mode: MathMode) -> MathMode:
-    """Resolve automatic mode to a concrete compiler mode."""
-    if math_mode not in {"auto", "inline", "display", "body"}:
-        raise ConfigurationError(
-            "math_mode must be 'auto', 'inline', 'display', or 'body'"
-        )
-    if math_mode != "auto":
-        return math_mode
-    environments = _source_environments(source)
-    if environments & _TOP_LEVEL_DISPLAY_ENVIRONMENTS:
-        return "body"
-    if environments & _INNER_DISPLAY_ENVIRONMENTS:
-        return "display"
-    return "inline"
-
-
-def tex_body(source: str, math_mode: MathMode) -> str:
-    """Return the body compiled by Vectex's crop-compatible TeX template."""
-    resolved = resolve_math_mode(source, math_mode)
-    if resolved == "inline":
-        return f"\\(\\displaystyle {source}\\)"
-    if resolved == "display":
-        compatible = re.sub(r"\\begin\s*\{split\}", r"\\begin{aligned}", source)
-        compatible = re.sub(r"\\end\s*\{split\}", r"\\end{aligned}", compatible)
-        return f"\\(\\displaystyle {compatible}\\)"
-    return source
-
-
-def textext_body(source: str, math_mode: MathMode) -> str:
-    """Return a TexText-compilable body while retaining the user's source."""
-    resolved = resolve_math_mode(source, math_mode)
-    if resolved == "inline":
-        return f"\\(\\displaystyle {source}\\)"
-    if resolved == "display":
-        return f"\\begin{{equation*}}\n{source}\n\\end{{equation*}}"
-    return source
-
-
-def _tex_document(source: str, preamble: str, math_mode: MathMode = "body") -> str:
+def _tex_document(source: str, preamble: str) -> str:
     """Build a single-expression document (kept for tests and extensions)."""
-    return _tex_document_many((source,), preamble, (math_mode,))
+    return _tex_document_many((source,), preamble)
 
 
 def _tex_document_many(
     sources: Sequence[str],
     preamble: str,
-    math_modes: Sequence[MathMode],
 ) -> str:
     explicit_class = _contains_document_class(preamble)
     cropped = _uses_cropped_pages(preamble)
@@ -274,8 +200,8 @@ def _tex_document_many(
             "\\usepackage[active,tightpage]{preview}\n\\setlength\\PreviewBorder{0pt}\n"
         )
     pages = []
-    for index, (source, math_mode) in enumerate(zip(sources, math_modes, strict=True)):
-        content = _measured_tex_body(index, source, math_mode)
+    for index, source in enumerate(sources):
+        content = _measured_tex_body(index, source)
         if not cropped:
             if index:
                 pages.append("\\newpage\n")
@@ -301,23 +227,49 @@ _METRICS_PREAMBLE = r"""
   \immediate\write\vectexmetrics{#1,\strip@pt\ht\vectexbox,\strip@pt\dp\vectexbox}%
   \usebox{\vectexbox}%
 }
-\newcommand{\vectexdisplaymetric}[1]{\immediate\write\vectexmetrics{#1,display}}
 \makeatother
 """
 
 
-def _measured_tex_body(index: int, source: str, math_mode: MathMode) -> str:
-    resolved = resolve_math_mode(source, math_mode)
-    body = tex_body(source, resolved)
-    if resolved in {"inline", "display"} or (
-        resolved == "body" and not _source_environments(source)
-    ):
-        return f"\\vectexmeasure{{{index}}}{{{body}}}"
-    return f"\\vectexdisplaymetric{{{index}}}\n{body}"
+def _measured_tex_body(index: int, source: str) -> str:
+    if _is_box_compatible_body(source):
+        return f"\\vectexmeasure{{{index}}}{{{source}}}"
+    return source
 
 
-def _source_environments(source: str) -> frozenset[str]:
-    return frozenset(re.findall(r"\\begin\s*\{([^}]+)\}", source))
+def _is_box_compatible_body(source: str) -> bool:
+    """Return whether a literal TeX body is safe to measure in an ``\\sbox``."""
+    in_inline_math = False
+    index = 0
+    while index < len(source):
+        if source.startswith("$$", index):
+            return False
+        character = source[index]
+        if character == "\\":
+            if source.startswith(r"\[", index):
+                return False
+            if source.startswith(r"\(", index):
+                in_inline_math = True
+                index += 2
+                continue
+            if source.startswith(r"\)", index):
+                in_inline_math = False
+                index += 2
+                continue
+            command = re.match(r"\\([A-Za-z@]+|.)", source[index:])
+            if command is not None:
+                name = command.group(1)
+                if not in_inline_math and name in {"begin", "par"}:
+                    return False
+                index += len(command.group(0))
+                continue
+        elif character == "$":
+            in_inline_math = not in_inline_math
+        elif character == "\n" and not in_inline_math:
+            if re.match(r"\n[ \t]*\n", source[index:]):
+                return False
+        index += 1
+    return True
 
 
 def _read_baseline_ratios(path: Path, count: int) -> tuple[float | None, ...]:
@@ -333,9 +285,6 @@ def _read_baseline_ratios(path: Path, count: int) -> tuple[float | None, ...]:
         except (IndexError, ValueError):
             continue
         if not 0 <= index < count:
-            continue
-        if len(fields) == 2 and fields[1] == "display":
-            ratios[index] = 0.5
             continue
         try:
             height, depth = float(fields[1]), float(fields[2])

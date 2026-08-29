@@ -17,12 +17,9 @@ from . import cache
 from .compiler import (
     Compiler,
     CompileRequest,
-    MathMode,
     compiler_from_name,
     normalize_args,
-    resolve_math_mode,
     tex_base_size,
-    textext_body,
 )
 from .converter import Converter, ConvertRequest, converter_from_name
 from .exceptions import ConfigurationError
@@ -54,7 +51,6 @@ class RenderItem:
     size_pt: float | None = None
     timeout: float | None = None
     preamble: str | None = None
-    math_mode: MathMode | None = None
     compiler_args: Sequence[str] | None = None
     converter_args: Sequence[str] | None = None
     executable_overrides: Mapping[str, str] | None = None
@@ -74,7 +70,6 @@ class _Resolved:
     converter: Converter
     timeout: float
     preamble: str
-    math_mode: MathMode
     scale: float
     size_pt: float | None
     baseline: float | None
@@ -98,7 +93,6 @@ def render(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
-    math_mode: MathMode = "body",
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,
@@ -111,12 +105,11 @@ def render(
     textext_preamble_file: str = "",
     textext_alignment: str = "middle center",
 ) -> VectexFragment:
-    """Compile *source* as a TeX document body and return one SVG fragment.
+    """Compile *source* as a literal TeX document body and return one SVG fragment.
 
-    The default ``math_mode="body"`` treats the source the way TexText does, so
-    ``$...$`` marks mathematics and everything else is prose. Use
-    :func:`render_math` or an explicit mode for a bare expression. *source* may
-    also be a :class:`RenderItem`, whose options override the keywords here.
+    Use normal TeX delimiters such as ``$...$`` or ``\\[...\\]`` for mathematics.
+    *source* may also be a :class:`RenderItem`, whose options override the
+    keywords here.
     """
     return render_many(
         (source,),
@@ -126,7 +119,6 @@ def render(
         size_pt=size_pt,
         timeout=timeout,
         preamble=preamble,
-        math_mode=math_mode,
         compiler_args=compiler_args,
         converter_args=converter_args,
         executable_overrides=executable_overrides,
@@ -141,20 +133,6 @@ def render(
     )[0]
 
 
-def render_math(
-    source: str, *, display: bool = False, **options: Any
-) -> VectexFragment:
-    """Compile *source* as mathematics, without the caller writing ``$...$``.
-
-    Every keyword argument of :func:`render` is accepted and forwarded, apart
-    from ``math_mode``, which this function sets: inline by default, or display
-    style with ``display=True``.
-    """
-    if "math_mode" in options:
-        raise ConfigurationError("render_math sets math_mode itself")
-    return render(source, math_mode="display" if display else "inline", **options)
-
-
 def render_many(
     sources: Sequence[str | RenderItem],
     *,
@@ -164,7 +142,6 @@ def render_many(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
-    math_mode: MathMode = "body",
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,
@@ -197,7 +174,6 @@ def render_many(
         size_pt=size_pt,
         timeout=timeout,
         preamble=preamble,
-        math_mode=math_mode,
         compiler_args=compiler_args,
         converter_args=converter_args,
         executable_overrides=executable_overrides,
@@ -270,7 +246,6 @@ def _render_uncached(
                 workdir=workdir,
                 timeout=shared.timeout,
                 preamble=shared.preamble,
-                math_mode=item.math_mode,
                 extra_args=shared.compiler_args,
                 executable=shared.overrides.get(compiler_impl.name),
             )
@@ -310,11 +285,6 @@ def _render_uncached(
                 raise ConfigurationError(
                     f"converter result cannot be read: {page.path}"
                 ) from exc
-            textext_source = (
-                textext_body(item.source, item.math_mode)
-                if compiler_impl.name != "typst"
-                else item.source
-            )
             fragments.append(
                 Normalizer().normalize(
                     svg,
@@ -326,14 +296,13 @@ def _render_uncached(
                     baseline_ratio=ratio,
                     compiler_options={
                         "args": list(shared.compiler_args),
-                        "math_mode": item.math_mode,
                         "preamble": shared.preamble,
                         "size_pt": item.size_pt,
                     },
                     converter_options={"args": list(shared.converter_args)},
                     id_prefix=prefix,
                     textext_compatible=item.textext_compatible,
-                    textext_source=textext_source,
+                    textext_source=item.source,
                     textext_preamble_file=item.textext_preamble_file,
                     textext_alignment=item.textext_alignment,
                 )
@@ -418,7 +387,6 @@ def _resolve(
         converter=converter_impl,
         timeout=timeout,
         preamble=preamble,
-        math_mode=resolve_math_mode(entry.source, chosen("math_mode")),
         scale=_effective_scale(scale_input, size_pt, preamble, engine_spec),
         size_pt=size_pt,
         baseline=chosen("baseline"),
@@ -478,7 +446,6 @@ def _cache_key(item: _Resolved, *, cached: bool) -> str:
         "engine": item.compiler.name,
         "executable_overrides": dict(item.overrides),
         "id_prefix": item.id_prefix,
-        "math_mode": item.math_mode,
         "preamble": item.preamble,
         "scale": item.scale,
         "size_pt": item.size_pt,

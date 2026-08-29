@@ -1,11 +1,12 @@
 """Render LaTeX or Typst into portable SVG group fragments."""
 
-from .api import RenderItem, clear_cache, render, render_many, render_math
+from importlib.metadata import PackageNotFoundError, version
+
+from .api import RenderItem, clear_cache, render, render_many
 from .compiler import (
     CompilationResult,
     Compiler,
     CompileRequest,
-    MathMode,
     TeXCompiler,
     TypstCompiler,
 )
@@ -43,7 +44,6 @@ __all__ = [
     "Converter",
     "DvisvgmConverter",
     "InvalidSVGError",
-    "MathMode",
     "MissingExecutableError",
     "Normalizer",
     "RenderItem",
@@ -53,10 +53,13 @@ __all__ = [
     "UnsupportedBackendError",
     "VectexError",
     "VectexFragment",
+    "__version__",
     "clear_cache",
     "render",
     "render_many",
-    "render_math",
 ]
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("vectex")
+except PackageNotFoundError:  # pragma: no cover - source checkout without install
+    __version__ = "0+unknown"
