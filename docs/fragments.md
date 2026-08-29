@@ -47,6 +47,14 @@ without one, because the box, not the type, is what got aligned.
 `to_svg()` returns the deterministic canonical serialization. `to_lxml()`
 parses and returns a fresh, mutable `lxml` group every time, so appending or
 editing the returned element cannot change the original fragment.
+`to_svg_document()` wraps the group in a complete standalone SVG document (XML
+header, `<svg>` root, `width`, `height`, and `viewBox`) that can be opened or
+served directly, and `write_svg_document(path)` writes that same document to a
+file; neither needs an object-model backend.
+
+The same two forms are available from the command line: `vectex '$E = mc^2$'`
+prints the fragment, while `vectex '$E = mc^2$' --output einstein.svg` (or
+`--as-doc einstein.svg`) writes a standalone document.
 
 When their optional dependencies are installed, `to_svg_py()` and
 `to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`.
@@ -59,6 +67,10 @@ output-driving inputs. Identical calls therefore serialize identically. Use
 `unique_ids=True` when inserting the same render more than once into one SVG,
 or provide `id_prefix` to control the namespace. An explicit prefix passed to
 `render_many` receives an input-position suffix.
+
+The prefix also names the outer group: `id_prefix="einstein"` produces
+`id="einstein-root"`. The CLI accepts the same value through
+`--id-prefix einstein`.
 
 Default black glyph paths do not override `fill`, so a fill set on a destination
 wrapper group recolours the whole label. Explicit non-black source colours are

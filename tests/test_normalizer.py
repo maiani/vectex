@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 from lxml import etree
@@ -222,6 +223,35 @@ def test_invalid_svg_is_rejected(raw: bytes, message: str) -> None:
 def test_invalid_scale_is_rejected(simple_svg: bytes, scale: float) -> None:
     with pytest.raises(ConfigurationError, match="scale"):
         normalize(simple_svg, scale=scale)
+
+
+def test_to_svg_document_is_a_standalone_svg(simple_svg: bytes) -> None:
+    fragment = normalize(simple_svg)
+    document = fragment.to_svg_document()
+
+    assert document.startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    assert fragment.to_svg() in document
+    root = etree.fromstring(document.encode())
+    assert etree.QName(root).localname == "svg"
+    assert float(root.get("width")) == pytest.approx(fragment.width)
+    assert float(root.get("height")) == pytest.approx(fragment.height)
+    assert tuple(float(part) for part in root.get("viewBox").split(" ")) == (
+        fragment.view_box
+    )
+    assert root.find(f"{{{SVG_NS}}}g").get("id") == "fixture-root"
+
+
+def test_write_svg_document_writes_the_standalone_svg(
+    tmp_path: Path, simple_svg: bytes
+) -> None:
+    fragment = normalize(simple_svg)
+    target = tmp_path / "label.svg"
+
+    fragment.write_svg_document(target)
+
+    assert target.read_text(encoding="utf-8") == fragment.to_svg_document()
+    saved = etree.parse(target)
+    assert etree.QName(saved.getroot()).localname == "svg"
 
 
 def test_xml_forbidden_source_is_rejected(simple_svg: bytes) -> None:

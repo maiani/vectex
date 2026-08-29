@@ -19,7 +19,10 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Topic :: Multimedia :: Graphics :: Graphics Conversion",
 ]
-dependencies = ["lxml>=5.0"]
+dependencies = ["lxml>=5.0", "typer>=0.12"]
+
+[project.scripts]
+vectex = "vectex.cli:app"
 
 [project.urls]
 Documentation = "https://maiani.github.io/vectex/"

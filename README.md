@@ -11,7 +11,8 @@ attributes and a richer, versioned metadata record.
 
 ## Install
 
-The required runtime is Python 3.10 or newer plus `lxml`:
+The required runtime is Python 3.10 or newer; installation includes `lxml` and
+the command-line dependency `typer`:
 
 ```console
 python -m pip install vectex
@@ -28,6 +29,25 @@ python -m pip install 'vectex[all]'
 The distribution names and imports are `svg.py` / `import svg` and `drawsvg` /
 `import drawsvg`.
 
+## Command line
+
+The installed `vectex` command renders a TeX document body to a portable SVG
+fragment on standard output:
+
+```console
+vectex '$E = mc^2$'
+```
+
+Use `--output` (or the more explicit `--as-doc`) to write a complete, openable
+SVG document instead:
+
+```console
+vectex '$E = mc^2$' --output einstein.svg
+```
+
+Run `vectex --help` for its engine, math-mode, preamble, size, scale, and
+timeout options; `vectex --version` reports the installed version.
+
 ## Minimal use
 
 ```python
@@ -41,6 +61,8 @@ expression = vectex.render_math(r"E = mc^2")
 
 svg_text = fragment.to_svg()
 lxml_group = fragment.to_lxml()
+document = fragment.to_svg_document()  # complete file-ready SVG
+fragment.write_svg_document("label.svg")  # same document, written to disk
 
 print(fragment.width, fragment.height, fragment.view_box)
 print(fragment.source, fragment.engine, fragment.metadata)
@@ -205,6 +227,10 @@ Identical render inputs serialize identically, while changed output-driving
 inputs receive a different namespace. Use `unique_ids=True` when embedding the
 same render more than once in one SVG, or supply an explicit `id_prefix`.
 `render_many(..., id_prefix="labels")` suffixes it by input position.
+
+The outer group is named from that prefix: `id_prefix="einstein"` gives
+`id="einstein-root"`, while rewritten definitions use IDs such as
+`einstein-0`. The CLI exposes this as `--id-prefix einstein`.
 
 ## Security and trust assumptions
 

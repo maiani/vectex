@@ -21,6 +21,7 @@ requirements:
   run:
     - python >=3.10
     - lxml >=5.0
+    - typer >=0.12
 
 tests:
   - python:
