@@ -17,12 +17,16 @@ uv run python -m build
 ```
 
 Unit tests use checked-in SVG fixtures and mocked subprocesses, so they do not
-require TeX, Typst, or dvisvgm. To request the optional real-tool integration
+require TeX or dvisvgm. To request the optional real-tool integration
 tests, run:
 
 ```console
 VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration
 ```
+
+The routine CI matrix runs unit tests on Python 3.11 and 3.14. Real-tool tests
+remain an explicit release gate on a prepared machine so CI does not repeatedly
+download a full TeX installation.
 
 ## Documentation
 

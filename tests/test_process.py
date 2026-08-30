@@ -9,14 +9,14 @@ from vectex import (
     CompilationError,
     CompilationResult,
     CompileRequest,
+    ConfigurationError,
     ConversionError,
     ConvertRequest,
     DvisvgmConverter,
     MissingExecutableError,
     TeXCompiler,
-    TypstCompiler,
 )
-from vectex.compiler import _is_box_compatible_body, _tex_document
+from vectex.compiler import _is_box_compatible_body, _tex_document_many
 from vectex.process import find_executable, run_process
 
 
@@ -45,7 +45,7 @@ def test_tex_compiler_constructs_safe_argv(
             source="x^2",
             workdir=tmp_path,
             timeout=7,
-            preamble="\\usepackage{amsmath}",
+            preamble="\\documentclass{article}\n\\usepackage{amsmath}",
             extra_args=("--extra",),
         )
     )
@@ -59,13 +59,19 @@ def test_tex_compiler_constructs_safe_argv(
 
 
 def test_default_document_crops_and_explicit_class_wins() -> None:
-    default = _tex_document("x", "")
-    explicit = _tex_document("x", r"\documentclass{article}")
+    default = _tex_document_many(("x",), "")
+    explicit = _tex_document_many(("x",), r"\documentclass{article}")
     assert r"\documentclass[border=0pt]{standalone}" in default
     assert r"\usepackage{amsmath}" in default
     assert r"\begin{preview}" in default
     assert explicit.startswith(r"\documentclass{article}")
+    assert r"\usepackage{amsmath}" not in explicit
     assert r"\begin{preview}" not in explicit
+
+
+def test_partial_preamble_is_rejected() -> None:
+    with pytest.raises(ConfigurationError, match="documentclass"):
+        _tex_document_many(("x",), r"\usepackage{bm}")
 
 
 def test_explicit_full_page_does_not_report_a_box_relative_baseline(
@@ -98,7 +104,7 @@ def test_explicit_full_page_does_not_report_a_box_relative_baseline(
 )
 def test_inline_tex_bodies_are_box_compatible(source: str) -> None:
     assert _is_box_compatible_body(source)
-    document = _tex_document(source, "")
+    document = _tex_document_many((source,), "")
     assert f"\\vectexmeasure{{0}}{{{source}}}" in document
 
 
@@ -114,7 +120,7 @@ def test_inline_tex_bodies_are_box_compatible(source: str) -> None:
 )
 def test_display_and_vertical_tex_bodies_are_not_boxed(source: str) -> None:
     assert not _is_box_compatible_body(source)
-    document = _tex_document(source, "")
+    document = _tex_document_many((source,), "")
     assert "\\vectexmeasure{0}" not in document
 
 
@@ -123,7 +129,7 @@ def test_display_and_vertical_tex_bodies_are_not_boxed(source: str) -> None:
     [r"\begin{align*}a&=b\end{align*}"],
 )
 def test_display_math_uses_a_tight_local_paragraph(source: str) -> None:
-    document = _tex_document(source, "")
+    document = _tex_document_many((source,), "")
     assert r"\hsize=0pt\displaywidth=0pt" in document
 
 
@@ -134,34 +140,13 @@ def test_display_math_uses_a_tight_local_paragraph(source: str) -> None:
 def test_outer_display_delimiters_use_tight_equivalent_framing(
     source: str, tight: str
 ) -> None:
-    document = _tex_document(source, "")
+    document = _tex_document_many((source,), "")
     assert tight in document
 
 
 def test_vertical_prose_does_not_use_a_zero_width_paragraph() -> None:
-    document = _tex_document("first paragraph\n\nsecond paragraph", "")
+    document = _tex_document_many(("first paragraph\n\nsecond paragraph",), "")
     assert r"\hsize=0pt\displaywidth=0pt" not in document
-
-
-def test_typst_compiler_constructs_argv(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    monkeypatch.setattr(
-        "vectex.compiler.find_executable", lambda _tool, _exe: "/bin/typst"
-    )
-
-    def fake_run(argv, **_kwargs):
-        (tmp_path / "document.pdf").write_bytes(b"pdf")
-        return completed(tuple(argv))
-
-    monkeypatch.setattr("vectex.compiler.run_process", fake_run)
-    result = TypstCompiler().compile(
-        CompileRequest(
-            source="$x$", workdir=tmp_path, timeout=3, preamble="#set text(size: 12pt)"
-        )
-    )
-    assert result.argv[:3] == ("/bin/typst", "compile", "--diagnostic-format=short")
-    assert (tmp_path / "document.typ").read_text().startswith("#set text")
 
 
 def test_dvisvgm_constructs_safe_argv(

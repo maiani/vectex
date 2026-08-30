@@ -27,7 +27,8 @@ def load(root: Path, key: str) -> VectexFragment | None:
         record = json.loads(path.read_text(encoding="utf-8"))
         payload = record["payload"]
         encoded = _json(payload)
-        if record.get("version") != 1 or record.get("checksum") != _digest(encoded):
+        checksum = hashlib.blake2s(encoded.encode("utf-8")).hexdigest()
+        if record.get("version") != 1 or record.get("checksum") != checksum:
             raise ValueError("invalid cache record")
         raw_view_box = payload["view_box"]
         if not isinstance(raw_view_box, list) or len(raw_view_box) != 4:
@@ -72,7 +73,8 @@ def store(root: Path, key: str, fragment: VectexFragment) -> None:
         "width": fragment.width,
     }
     encoded = _json(payload)
-    record = _json({"checksum": _digest(encoded), "payload": payload, "version": 1})
+    checksum = hashlib.blake2s(encoded.encode("utf-8")).hexdigest()
+    record = _json({"checksum": checksum, "payload": payload, "version": 1})
     fd, temporary = tempfile.mkstemp(prefix=".vectex-", suffix=".tmp", dir=root)
     temporary_path = Path(temporary)
     try:
@@ -98,10 +100,6 @@ def clear(cache_dir: str | os.PathLike[str] | None = None) -> int:
             continue
         removed += 1
     return removed
-
-
-def _digest(value: str) -> str:
-    return hashlib.blake2s(value.encode("utf-8")).hexdigest()
 
 
 def _json(value: Any) -> str:

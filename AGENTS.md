@@ -2,7 +2,7 @@
 
 ## Scope
 
-`vectex` compiles LaTeX or Typst and normalizes converter output into one
+`vectex` compiles LaTeX and normalizes converter output into one
 self-contained SVG `<g>` fragment. It does not insert fragments into destination
 documents, implement an SVG editor, or provide a GUI.
 
@@ -20,14 +20,16 @@ documents, implement an SVG editor, or provide a GUI.
   Return copies or new wrapper objects from public conversion methods.
 - Preserve optional dependency boundaries. Import `svg.py` (`import svg`) and
   `drawsvg` only inside their adapters.
+- Before 1.0, make API changes directly: update consumers, tests, and docs, and
+  do not add compatibility aliases, deprecated wrappers, or legacy option shims.
 
 ## Development
 
-- Supported Python: 3.10 and newer.
+- Supported Python: 3.11 and newer.
 - Install a complete development environment with `uv sync --all-extras`.
 - Run `uv run ruff format --check .`, `uv run ruff check .`,
   `uv run mypy src`, and `uv run pytest` before reporting a change complete.
-- Unit tests must not require TeX, Typst, or dvisvgm. Real-tool integration
+- Unit tests must not require TeX or dvisvgm. Real-tool integration
   tests must be explicitly enabled and skip cleanly when tools are absent.
 - Add a regression fixture or mocked-process test for every normalization,
   security, or command-construction bug.

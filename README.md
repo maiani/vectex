@@ -2,10 +2,10 @@
 
 [![Test](https://github.com/maiani/vectex/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/maiani/vectex/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/vectex.svg)](https://pypi.org/project/vectex/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 
-`vectex` compiles LaTeX expressions or Typst source and returns one portable SVG
+`vectex` compiles LaTeX source and returns one portable SVG
 `<g>` fragment. It is a library-level reimplementation of the rendering and
 normalization boundary behind TexText: it does not require Inkscape or access to
 the destination SVG document.
@@ -16,7 +16,7 @@ attributes and a richer, versioned metadata record.
 
 ## Install
 
-The required runtime is Python 3.10 or newer; installation includes `lxml` and
+The required runtime is Python 3.11 or newer; installation includes `lxml` and
 the command-line dependency `typer`:
 
 ```console
@@ -57,6 +57,20 @@ vectex '$E = mc^2$' -o einstein-fragment.svg
 vectex '$E = mc^2$' --as-doc -o einstein.svg
 ```
 
+For multiline input, read UTF-8 source from a file or standard input:
+
+```console
+vectex --input equation.tex --as-doc -o equation.svg
+printf '%s\n' '$E = mc^2$' | vectex - --as-doc > einstein.svg
+```
+
+`--preamble-file preamble.tex` reads a complete preamble from a file and also
+records its absolute path for later TexText editing. It is an alternative to
+inline `--preamble`. For ordinary package loading, repeat
+`--extra-package NAME` instead of writing a preamble. Reuse persistent render
+records with `--cache-dir PATH`; add `--refresh` to recompile and replace the
+selected record.
+
 Use `--executable NAME=PATH` to override a tool location; repeat it for both
 the engine and `dvisvgm` when needed. Run `vectex --help` for the complete
 option list; `vectex --version` reports the installed version.
@@ -71,6 +85,7 @@ fragment = vectex.render(
     engine="pdflatex",
 )
 expression = vectex.render(r"$E = mc^2$")
+vector = vectex.render(r"$\bm{n}$", extra_packages=("bm",))
 
 svg_text = fragment.to_svg()
 lxml_group = fragment.to_lxml()
@@ -85,21 +100,23 @@ TeX input is always a literal document body, the same convention TexText uses:
 `$...$` marks inline mathematics, `\[...\]` marks display mathematics, and
 everything else is prose. Complete environments such as `align*` can be used
 directly; inner environments need their normal TeX context. `amsmath` is loaded
-by default, so `\text{...}` works in math expressions. Typst source is passed
-through unchanged.
+by default, so `\text{...}` works in math expressions.
 
 The default TeX template uses a zero-border `standalone` page cropped to each
-fragment. A `\documentclass` supplied in `preamble` takes precedence, so an
-explicit `\documentclass{article}` restores full-page geometry.
+fragment and loads `amsmath`. A nonempty `preamble` replaces that complete
+preamble and must contain `\documentclass`, so
+`preamble=r"\documentclass{article}"` restores full-page geometry. Use
+`extra_packages=("bm",)` when only additional `\usepackage` declarations are
+needed. `preamble` and `extra_packages` are mutually exclusive.
 
 Use either `size_pt=7` to express a desired font size or the lower-level
 `scale=0.7`; passing both is an error. TeX sizing is resolved against the
-selected document class (10 pt by default), while Typst uses its 11 pt default.
+selected document class (10 pt by default).
 
 Every call uses a fresh temporary directory and runs two stages:
 
 ```text
-source -> pdflatex/xelatex/lualatex/typst -> PDF -> dvisvgm -> SVG -> lxml -> <g>
+source -> pdflatex/xelatex/lualatex -> PDF -> dvisvgm -> SVG -> lxml -> <g>
 ```
 
 ## Embedding and adapters
@@ -153,8 +170,8 @@ content. If re-editing must use the same custom preamble, pass both values:
 ```python
 fragment = vectex.render(
     r"$\operatorname{rank}(A)$",
-    preamble=r"\usepackage{amsmath}",
-    textext_preamble_file="/absolute/shared/packages.tex",
+    preamble="\\documentclass{standalone}\n\\usepackage{amsmath}",
+    textext_preamble_file="/absolute/shared/preamble.tex",
 )
 ```
 
@@ -166,7 +183,7 @@ attributes.
 ## Executable discovery and configuration
 
 Built-in components use `shutil.which` to resolve `pdflatex`, `xelatex`,
-`lualatex`, `typst`, and `dvisvgm`. Exact overrides make discovery explicit and
+`lualatex`, and `dvisvgm`. Exact overrides make discovery explicit and
 testable:
 
 ```python
@@ -245,7 +262,7 @@ CSS imports, external hrefs/URLs, duplicate IDs, and unresolved local references
 This conservative policy avoids active content and dependencies on destination
 document CSS.
 
-LaTeX and Typst are powerful programs, not safe sandboxes. Vectex passes
+LaTeX is a powerful program, not a safe sandbox. Vectex passes
 `-no-shell-escape` to built-in TeX engines, but a malicious source or trusted
 extra compiler option can still read files or consume resources according to the
 compiler's capabilities. Only compile trusted source, and use an OS/container
@@ -278,5 +295,5 @@ Vectex is distributed under the MIT License.
 
 Vectex produces static, self-contained SVG fragments; it does not manipulate a
 destination SVG document. See [Rendering](docs/rendering.md) for the
-built-in pipeline, Typst baseline behavior, TexText contract, and trust policy,
+built-in pipeline, baseline behavior, TexText contract, and trust policy,
 and [Fragments](docs/fragments.md) for placement and caller integration.

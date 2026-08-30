@@ -16,10 +16,11 @@ pytestmark = [
 ]
 
 
-def test_real_pdflatex_and_dvisvgm() -> None:
-    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
-        pytest.skip("pdflatex and dvisvgm are required")
-    fragment = vectex.render(r"$E = mc^2$", engine="pdflatex")
+@pytest.mark.parametrize("engine", ["pdflatex", "xelatex", "lualatex"])
+def test_real_tex_engines_and_dvisvgm(engine: str) -> None:
+    if shutil.which(engine) is None or shutil.which("dvisvgm") is None:
+        pytest.skip(f"{engine} and dvisvgm are required")
+    fragment = vectex.render(r"$E = mc^2$", engine=engine)
     assert fragment.width > 0
     assert fragment.width < 100
     assert fragment.height < 100
@@ -88,7 +89,7 @@ def test_real_batch_groups_items_with_their_own_preamble() -> None:
     shared, private = vectex.render_many(
         [
             vectex.RenderItem("$x$", size_pt=7),
-            vectex.RenderItem(r"$\bm{n}$", size_pt=7, preamble=r"\usepackage{bm}"),
+            vectex.RenderItem(r"$\bm{n}$", size_pt=7, extra_packages=("bm",)),
         ]
     )
     assert shared.width > 0
@@ -96,14 +97,14 @@ def test_real_batch_groups_items_with_their_own_preamble() -> None:
     assert (
         private.to_svg()
         == vectex.render(
-            vectex.RenderItem(r"$\bm{n}$", size_pt=7, preamble=r"\usepackage{bm}")
+            vectex.RenderItem(r"$\bm{n}$", size_pt=7, extra_packages=("bm",))
         ).to_svg()
     )
 
 
-def test_real_typst_and_dvisvgm() -> None:
-    if shutil.which("typst") is None or shutil.which("dvisvgm") is None:
-        pytest.skip("typst and dvisvgm are required")
-    fragment = vectex.render("$ E = m c^2 $", engine="typst")
+def test_real_package_name_convenience() -> None:
+    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
+        pytest.skip("pdflatex and dvisvgm are required")
+    fragment = vectex.render(r"$\bm{n}$", extra_packages=("bm",))
     assert fragment.width > 0
-    assert fragment.to_svg().startswith("<g")
+    assert fragment.metadata["compiler_options"]["extra_packages"] == ["bm"]

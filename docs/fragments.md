@@ -15,8 +15,8 @@ The public fields are `source`, `engine`, `converter`, `scale`, `width`,
 `height`, `view_box`, and `baseline`. For box-compatible inline and prose TeX,
 the baseline is derived from measured height and depth; it is expressed
 downward from the fragment's top edge and scales with the fragment. Display and
-other vertical TeX bodies, and Typst sources, have `baseline=None` unless the
-caller supplies one explicitly.
+other vertical TeX bodies have `baseline=None` unless the caller supplies one
+explicitly.
 
 ## Placing a fragment
 
@@ -69,6 +69,8 @@ prints the fragment, while `vectex '$E = mc^2$' --as-doc` prints a standalone
 document. `-o PATH` writes the selected form to a file, so
 `vectex '$E = mc^2$' --as-doc -o einstein.svg` writes a standalone document
 and `vectex '$E = mc^2$' -o label.svg` writes the fragment.
+Use `--input PATH` for UTF-8 source files or the positional `-` to read source
+from standard input.
 
 When their optional dependencies are installed, `to_svg_py()` and
 `to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`.

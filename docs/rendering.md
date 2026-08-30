@@ -15,7 +15,7 @@ fragment = vectex.render(
 
 ## Engines and converter
 
-Built-in engine names are `pdflatex`, `xelatex`, `lualatex`, and `typst`; the
+Built-in engine names are `pdflatex`, `xelatex`, and `lualatex`; the
 built-in converter is `dvisvgm`. Applications may instead supply objects that
 implement Vectex's public `Compiler` and `Converter` protocols.
 
@@ -29,7 +29,7 @@ different intermediate format or SVG converter can provide their own
 For inline or prose TeX bodies, Vectex derives `fragment.baseline` from the
 measured height and depth of the typeset box. Display and other vertical bodies
 cannot be measured in that box and therefore have no baseline unless the caller
-supplies `baseline=` explicitly. Typst likewise has no derived baseline.
+supplies `baseline=` explicitly.
 
 To make executable locations explicit, pass a mapping keyed by the component
 name:
@@ -58,6 +58,37 @@ vectex '$E = mc^2$' \
   --executable dvisvgm=/opt/texlive/bin/dvisvgm
 ```
 
+For source that is inconvenient to quote at a shell, pass a UTF-8 file or read
+standard input explicitly with `-`:
+
+```console
+vectex --input equation.tex --as-doc -o equation.svg
+printf '%s\n' '$E = mc^2$' | vectex - --as-doc > einstein.svg
+```
+
+`--preamble-file preamble.tex` is the file-backed alternative to `--preamble`.
+Vectex reads its UTF-8 content and records the absolute path in the fragment's
+TexText compatibility metadata. Either form must provide a complete preamble
+containing `\documentclass`.
+
+For ordinary LaTeX packages, use package names instead of constructing a whole
+preamble:
+
+```python
+label = vectex.render(r"$\bm{n}$", extra_packages=("bm", "siunitx"))
+```
+
+The CLI equivalent is repeatable:
+
+```console
+vectex '$\bm{n}$' --extra-package bm --extra-package siunitx
+```
+
+Package entries accept names only and generate `\usepackage{NAME}`. Use a
+complete `preamble` or `--preamble-file` when package options, a different
+document class, or other declarations are needed. The complete-preamble and
+`extra_packages` paths are mutually exclusive.
+
 ## TeX input
 
 TeX source is always a literal document body, the same convention TexText uses.
@@ -78,10 +109,12 @@ aligned = vectex.render(r"\[\begin{aligned}a &= b \\ c &= d\end{aligned}\]")
 equations = vectex.render(r"\begin{align*}a &= b \\ c &= d\end{align*}")
 ```
 
-TeX uses a zero-border `standalone` document cropped to the content. An explicit
-document class in `preamble` wins; `\documentclass{article}` therefore produces
-a full page intentionally. Use `size_pt=7` for a semantic font size or
-`scale=0.7` for direct geometric scaling. They are alternatives.
+By default, TeX uses a zero-border `standalone` document cropped to the content
+and loads `amsmath`. A nonempty `preamble` replaces the entire default and must
+contain `\documentclass`; `preamble=r"\documentclass{article}"` therefore
+produces a full page intentionally. Use `size_pt=7` for a semantic font size or
+`scale=0.7` for direct geometric scaling. They are alternatives, as are
+`preamble` and `extra_packages`.
 
 ## Batches and persistent cache
 
@@ -94,8 +127,9 @@ labels = vectex.render_many([r"$\omega_c$", r"$E_{\rm zpf}$", "input"])
 
 A source may also be a `RenderItem` carrying its own options; those left as
 `None` take the batch value. Items that share a compilation -- the same engine,
-converter, preamble, timeout, process arguments, and executable overrides --
-are compiled together, and an item that differs simply forms its own group.
+converter, preamble, extra packages, timeout, process arguments, and executable
+overrides -- are compiled together, and an item that differs simply forms its
+own group.
 Fragments come back in input order:
 
 ```python
@@ -104,7 +138,7 @@ labels = vectex.render_many(
         vectex.RenderItem(r"$\omega_c$", size_pt=7),
         vectex.RenderItem("altermagnet", size_pt=6),
     ],
-    preamble=r"\usepackage{lmodern}",
+    extra_packages=("lmodern",),
 )
 ```
 
@@ -126,6 +160,13 @@ Pass `refresh=True` to recompile and replace one record without discarding the
 rest, or call `vectex.clear_cache(".cache")` to remove all versioned Vectex
 entries.
 
+The CLI exposes the same render-cache controls:
+
+```console
+vectex '$E = mc^2$' --cache-dir .vectex-cache
+vectex '$E = mc^2$' --cache-dir .vectex-cache --refresh
+```
+
 ## TexText compatibility
 
 TexText-compatible attributes are emitted by default. Keep the outer group
@@ -142,7 +183,7 @@ check rather than a library requirement.
 
 ## Trust boundary
 
-LaTeX and Typst are not sandboxes. Vectex disables TeX shell escape for its
+LaTeX is not a sandbox. Vectex disables TeX shell escape for its
 built-in TeX engines, but trusted source may still read files or consume
 resources according to compiler capabilities. Use an OS or container sandbox
 when processing untrusted input.

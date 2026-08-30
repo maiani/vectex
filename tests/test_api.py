@@ -73,6 +73,18 @@ class FakeConverter:
         return ConversionResult(path, self.name, ("fake-svg",), "", "")
 
 
+class RecordingTeXCompiler(vectex.TeXCompiler):
+    def __init__(self) -> None:
+        super().__init__("pdflatex")
+        self.request = None
+
+    def compile(self, request):
+        self.request = request
+        path = request.workdir / "fake.pdf"
+        path.write_bytes(b"pdf")
+        return CompilationResult(path, "pdf", self.name, ("pdflatex",), "", "")
+
+
 class BatchConverter(FakeConverter):
     def __init__(self, svg: bytes) -> None:
         super().__init__(svg)
@@ -101,7 +113,7 @@ def test_render_vertical_slice_and_temp_cleanup(simple_svg: bytes) -> None:
         converter=converter,
         scale=1.5,
         timeout=9,
-        preamble="\\usepackage{amsmath}",
+        preamble="\\documentclass{standalone}\n\\usepackage{amsmath}",
         compiler_args=("--trusted",),
         converter_args=("--exact",),
         id_prefix="api",
@@ -110,11 +122,38 @@ def test_render_vertical_slice_and_temp_cleanup(simple_svg: bytes) -> None:
     assert fragment.source == "$E = mc^2$"
     assert fragment.width == 15
     assert compiler.request.timeout == 9
+    assert compiler.request.preamble == (
+        "\\documentclass{standalone}\n\\usepackage{amsmath}"
+    )
     assert compiler.request.extra_args == ("--trusted",)
     assert converter.request.extra_args == ("--exact",)
     assert compiler.workdir is not None
     assert not compiler.workdir.exists()
     assert "$E = mc^2$" in fragment.to_svg()
+
+
+def test_extra_package_names_generate_tex_declarations(simple_svg: bytes) -> None:
+    compiler = RecordingTeXCompiler()
+
+    fragment = vectex.render(
+        "$x$",
+        engine=compiler,
+        converter=FakeConverter(simple_svg),
+        extra_packages=("bm", "siunitx"),
+    )
+
+    assert compiler.request is not None
+    assert compiler.request.preamble == (
+        "\\documentclass[border=0pt]{standalone}\n"
+        "\\usepackage{amsmath}\n"
+        "\\usepackage{bm}\n"
+        "\\usepackage{siunitx}"
+    )
+    assert fragment.metadata["compiler_options"]["extra_packages"] == [
+        "bm",
+        "siunitx",
+    ]
+    assert fragment.metadata["compiler_options"]["preamble"] == ""
 
 
 @pytest.mark.parametrize(
@@ -124,6 +163,20 @@ def test_render_vertical_slice_and_temp_cleanup(simple_svg: bytes) -> None:
         ({"source": "x", "timeout": 0}, "timeout"),
         ({"source": "x", "compiler_args": "--bad"}, "compiler_args"),
         ({"source": "x", "textext_alignment": ""}, "alignment"),
+        ({"source": "x", "preamble": r"\usepackage{bm}"}, "documentclass"),
+        (
+            {
+                "source": "x",
+                "preamble": r"\documentclass{standalone}",
+                "extra_packages": ("bm",),
+            },
+            "alternatives",
+        ),
+        ({"source": "x", "extra_packages": "bm"}, "extra_packages"),
+        (
+            {"source": "x", "extra_packages": (r"bm}\input{bad",)},
+            "extra_packages",
+        ),
     ],
 )
 def test_render_rejects_bad_options(
@@ -195,7 +248,7 @@ def test_disk_cache_detects_corruption_and_can_be_cleared(
 ) -> None:
     compiler = BatchCompiler()
     converter = BatchConverter(simple_svg)
-    monkeypatch.setattr("vectex.api.compiler_from_name", lambda _name: compiler)
+    monkeypatch.setattr("vectex.api.TeXCompiler", lambda _name: compiler)
     monkeypatch.setattr("vectex.api.converter_from_name", lambda _name: converter)
     first = vectex.render("x", cache_dir=tmp_path)
     second = vectex.render("x", cache_dir=tmp_path)
@@ -263,7 +316,7 @@ def test_cache_records_track_the_toolchain(
 ) -> None:
     compiler = IdentifiedCompiler()
     converter = IdentifiedConverter(simple_svg)
-    monkeypatch.setattr("vectex.api.compiler_from_name", lambda _name: compiler)
+    monkeypatch.setattr("vectex.api.TeXCompiler", lambda _name: compiler)
     monkeypatch.setattr("vectex.api.converter_from_name", lambda _name: converter)
     vectex.render("x", cache_dir=tmp_path)
     vectex.render("x", cache_dir=tmp_path)
@@ -279,7 +332,7 @@ def test_refresh_recompiles_and_replaces_the_record(
 ) -> None:
     compiler = IdentifiedCompiler()
     converter = IdentifiedConverter(simple_svg)
-    monkeypatch.setattr("vectex.api.compiler_from_name", lambda _name: compiler)
+    monkeypatch.setattr("vectex.api.TeXCompiler", lambda _name: compiler)
     monkeypatch.setattr("vectex.api.converter_from_name", lambda _name: converter)
     vectex.render("x", cache_dir=tmp_path)
     vectex.render("x", cache_dir=tmp_path, refresh=True)
@@ -305,7 +358,7 @@ def test_render_many_groups_by_compilation_and_keeps_order(simple_svg: bytes) ->
     first, second, third = vectex.render_many(
         [
             "x",
-            vectex.RenderItem("y", preamble="\\usepackage{amssymb}"),
+            vectex.RenderItem("y", extra_packages=("amssymb",)),
             vectex.RenderItem("z", engine=private),
         ],
         engine=shared,

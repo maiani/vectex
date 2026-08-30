@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import tempfile
 import uuid
 from collections.abc import Mapping, Sequence
@@ -17,7 +18,8 @@ from . import cache
 from .compiler import (
     Compiler,
     CompileRequest,
-    compiler_from_name,
+    TeXCompiler,
+    _resolve_tex_preamble,
     normalize_args,
     tex_base_size,
 )
@@ -27,7 +29,8 @@ from .fragment import VectexFragment
 from .normalizer import Normalizer
 from .process import tool_identity
 
-_TEXTEXT_ENGINES = frozenset({"pdflatex", "xelatex", "lualatex", "typst"})
+_TEXTEXT_ENGINES = frozenset({"pdflatex", "xelatex", "lualatex"})
+_PACKAGE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 @dataclass(frozen=True)
@@ -40,8 +43,8 @@ class RenderItem:
     executed rather than what it produces, and stay on the call itself.
 
     :func:`render_many` groups items that share a compilation -- the same
-    engine, converter, preamble, timeout, process arguments and executable
-    overrides -- and runs one compiler and converter invocation per group.
+    engine, converter, preamble, extra packages, timeout, process arguments and
+    executable overrides -- and runs one compiler and converter invocation per group.
     """
 
     source: str
@@ -51,6 +54,7 @@ class RenderItem:
     size_pt: float | None = None
     timeout: float | None = None
     preamble: str | None = None
+    extra_packages: Sequence[str] | None = None
     compiler_args: Sequence[str] | None = None
     converter_args: Sequence[str] | None = None
     executable_overrides: Mapping[str, str] | None = None
@@ -70,6 +74,8 @@ class _Resolved:
     converter: Converter
     timeout: float
     preamble: str
+    preamble_input: str
+    extra_packages: tuple[str, ...]
     scale: float
     size_pt: float | None
     baseline: float | None
@@ -93,6 +99,7 @@ def render(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
+    extra_packages: Sequence[str] = (),
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,
@@ -109,7 +116,9 @@ def render(
 
     Use normal TeX delimiters such as ``$...$`` or ``\\[...\\]`` for mathematics.
     *source* may also be a :class:`RenderItem`, whose options override the
-    keywords here.
+    keywords here. A nonempty *preamble* is complete and contains
+    ``\\documentclass``; *extra_packages* is its mutually exclusive convenience
+    alternative.
     """
     return render_many(
         (source,),
@@ -119,6 +128,7 @@ def render(
         size_pt=size_pt,
         timeout=timeout,
         preamble=preamble,
+        extra_packages=extra_packages,
         compiler_args=compiler_args,
         converter_args=converter_args,
         executable_overrides=executable_overrides,
@@ -142,6 +152,7 @@ def render_many(
     size_pt: float | None = None,
     timeout: float = 30.0,
     preamble: str = "",
+    extra_packages: Sequence[str] = (),
     compiler_args: Sequence[str] = (),
     converter_args: Sequence[str] = (),
     executable_overrides: Mapping[str, str] | None = None,
@@ -174,6 +185,7 @@ def render_many(
         size_pt=size_pt,
         timeout=timeout,
         preamble=preamble,
+        extra_packages=extra_packages,
         compiler_args=compiler_args,
         converter_args=converter_args,
         executable_overrides=executable_overrides,
@@ -296,7 +308,8 @@ def _render_uncached(
                     baseline_ratio=ratio,
                     compiler_options={
                         "args": list(shared.compiler_args),
-                        "preamble": shared.preamble,
+                        "extra_packages": list(item.extra_packages),
+                        "preamble": item.preamble_input,
                         "size_pt": item.size_pt,
                     },
                     converter_options={"args": list(shared.converter_args)},
@@ -337,9 +350,10 @@ def _resolve(
         value = getattr(entry, name)
         return getattr(defaults, name) if value is None else value
 
-    preamble = chosen("preamble")
-    if not isinstance(preamble, str):
+    preamble_input = chosen("preamble")
+    if not isinstance(preamble_input, str):
         raise ConfigurationError("preamble must be a string")
+    extra_packages = _extra_package_names(chosen("extra_packages"))
     textext_compatible = chosen("textext_compatible")
     if not isinstance(textext_compatible, bool):
         raise ConfigurationError("textext_compatible must be a boolean")
@@ -352,12 +366,14 @@ def _resolve(
 
     engine_spec = chosen("engine")
     converter_spec = chosen("converter")
-    compiler_impl = cast(
-        Compiler, _component_for(engine_spec, compiler_from_name, components)
+    compiler_component, engine_key = _component_for(
+        engine_spec, TeXCompiler, components
     )
-    converter_impl = cast(
-        Converter, _component_for(converter_spec, converter_from_name, components)
+    converter_component, converter_key = _component_for(
+        converter_spec, converter_from_name, components
     )
+    compiler_impl = cast(Compiler, compiler_component)
+    converter_impl = cast(Converter, converter_component)
     _component(compiler_impl, "compiler")
     _component(converter_impl, "converter")
     if textext_compatible and compiler_impl.name not in _TEXTEXT_ENGINES:
@@ -375,19 +391,24 @@ def _resolve(
     overrides = _executable_overrides(chosen("executable_overrides"))
     compiler_args = normalize_args(chosen("compiler_args"), option="compiler_args")
     converter_args = normalize_args(chosen("converter_args"), option="converter_args")
-    timeout = _positive_timeout(chosen("timeout"))
-    id_prefix = (
-        entry.id_prefix
-        if entry.id_prefix is not None
-        else _batch_prefix(defaults.id_prefix, index, count)
-    )
+    timeout = _positive_number(chosen("timeout"), "timeout")
+    preamble = _resolve_tex_preamble(preamble_input, extra_packages)
+    id_prefix: str | None
+    if entry.id_prefix is not None:
+        id_prefix = entry.id_prefix
+    elif defaults.id_prefix is None or count == 1:
+        id_prefix = defaults.id_prefix
+    else:
+        id_prefix = f"{defaults.id_prefix}-{index}"
     return _Resolved(
         source=entry.source,
         compiler=compiler_impl,
         converter=converter_impl,
         timeout=timeout,
         preamble=preamble,
-        scale=_effective_scale(scale_input, size_pt, preamble, engine_spec),
+        preamble_input=preamble_input,
+        extra_packages=extra_packages,
+        scale=_effective_scale(scale_input, size_pt, preamble),
         size_pt=size_pt,
         baseline=chosen("baseline"),
         id_prefix=id_prefix,
@@ -398,8 +419,8 @@ def _resolve(
         textext_preamble_file=textext_preamble_file,
         textext_alignment=textext_alignment,
         compilation=(
-            _spec_key(engine_spec),
-            _spec_key(converter_spec),
+            engine_key,
+            converter_key,
             timeout,
             preamble,
             compiler_args,
@@ -414,16 +435,12 @@ def _component_for(
     spec: Any,
     factory: Any,
     components: dict[Any, Compiler | Converter],
-) -> Compiler | Converter:
+) -> tuple[Compiler | Converter, Any]:
     """Reuse one component instance per distinct engine or converter spec."""
-    key = _spec_key(spec)
+    key = spec if isinstance(spec, str) else id(spec)
     if key not in components:
         components[key] = factory(spec) if isinstance(spec, str) else spec
-    return components[key]
-
-
-def _spec_key(spec: Any) -> Any:
-    return spec if isinstance(spec, str) else id(spec)
+    return components[key], key
 
 
 def _compilation_groups(
@@ -446,7 +463,8 @@ def _cache_key(item: _Resolved, *, cached: bool) -> str:
         "engine": item.compiler.name,
         "executable_overrides": dict(item.overrides),
         "id_prefix": item.id_prefix,
-        "preamble": item.preamble,
+        "extra_packages": list(item.extra_packages),
+        "preamble": item.preamble_input,
         "scale": item.scale,
         "size_pt": item.size_pt,
         "source": item.source,
@@ -480,24 +498,30 @@ def _component_identity(
     return tool_identity(overrides.get(name, name))
 
 
-def _batch_prefix(id_prefix: str | None, index: int, count: int) -> str | None:
-    """Spread one batch prefix over several fragments without collisions."""
-    if id_prefix is None or count == 1:
-        return id_prefix
-    return f"{id_prefix}-{index}"
+def _extra_package_names(value: Sequence[str]) -> tuple[str, ...]:
+    """Validate package names without accepting TeX syntax as convenience input."""
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise ConfigurationError("extra_packages must be a sequence of package names")
+    extra_packages = tuple(value)
+    if not all(
+        isinstance(name, str) and _PACKAGE_RE.fullmatch(name) for name in extra_packages
+    ):
+        raise ConfigurationError(
+            "extra_packages must contain only letters, digits, dots, underscores, "
+            "and hyphens"
+        )
+    return extra_packages
 
 
 def _effective_scale(
-    scale: float | None, size_pt: float | None, preamble: str, engine: str | Compiler
+    scale: float | None, size_pt: float | None, preamble: str
 ) -> float:
     if scale is not None and size_pt is not None:
         raise ConfigurationError("scale and size_pt are alternatives")
     if size_pt is None:
         return _positive_number(1.0 if scale is None else scale, "scale")
     size = _positive_number(size_pt, "size_pt")
-    engine_name = engine if isinstance(engine, str) else engine.name
-    base = 11.0 if engine_name == "typst" else tex_base_size(preamble)
-    return size / base
+    return size / tex_base_size(preamble)
 
 
 def _prefix(explicit: str | None, unique: bool, key: str) -> str:
@@ -523,10 +547,6 @@ def _positive_number(value: float, option: str) -> float:
     if not math.isfinite(number) or number <= 0:
         raise ConfigurationError(f"{option} must be a positive finite number")
     return number
-
-
-def _positive_timeout(value: float) -> float:
-    return _positive_number(value, "timeout")
 
 
 def _executable_overrides(value: Mapping[str, str] | None) -> dict[str, str]:

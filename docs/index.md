@@ -1,6 +1,6 @@
 # Vectex
 
-Vectex compiles LaTeX expressions or Typst source into a self-contained,
+Vectex compiles LaTeX source into a self-contained,
 editable SVG `<g>` fragment. It provides the rendering and normalization
 boundary behind TexText without requiring Inkscape or access to a destination
 SVG document.
@@ -11,7 +11,7 @@ to applications that manage their own editing workflow.
 
 ## Install
 
-Vectex requires Python 3.10 or newer and installs with `lxml`:
+Vectex requires Python 3.11 or newer and installs with `lxml` and Typer:
 
 ```console
 python -m pip install vectex
@@ -41,11 +41,11 @@ svg_group = fragment.to_svg()
 The standard pipeline is:
 
 ```text
-source -> TeX or Typst -> PDF -> dvisvgm -> SVG -> normalized <g>
+source -> TeX -> PDF -> dvisvgm -> SVG -> normalized <g>
 ```
 
 Built-in components discover their executables from `PATH`. For normal use,
-install a supported TeX engine or Typst plus `dvisvgm`; see [Rendering](rendering.md)
+install a supported TeX engine plus `dvisvgm`; see [Rendering](rendering.md)
 for explicit executable paths and other configuration.
 
 ## Guarantees

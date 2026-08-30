@@ -1,4 +1,4 @@
-"""Render LaTeX or Typst into portable SVG group fragments."""
+"""Render LaTeX into portable SVG group fragments."""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -8,7 +8,6 @@ from .compiler import (
     Compiler,
     CompileRequest,
     TeXCompiler,
-    TypstCompiler,
 )
 from .converter import (
     ConversionResult,
@@ -48,7 +47,6 @@ __all__ = [
     "Normalizer",
     "RenderItem",
     "TeXCompiler",
-    "TypstCompiler",
     "UnsafeSVGError",
     "UnsupportedBackendError",
     "VectexError",

@@ -5,17 +5,21 @@ build-backend = "hatchling.build"
 [project]
 name = "vectex"
 version = "0.1.0"
-description = "Render LaTeX or Typst as portable, editable SVG group fragments"
+description = "Render LaTeX as portable, editable SVG group fragments"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Andrea Maiani", email = "dev@andreamaiani.com" }]
 license = "MIT"
-keywords = ["latex", "typst", "svg", "vector-graphics"]
+keywords = ["latex", "svg", "vector-graphics"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "License :: OSI Approved :: MIT License",
   "Topic :: Multimedia :: Graphics :: Graphics Conversion",
 ]
@@ -68,7 +72,7 @@ markers = ["integration: requires explicitly enabled external rendering tools"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["B", "E", "F", "I", "N", "RUF", "S", "UP"]
@@ -78,7 +82,7 @@ ignore = ["S603"]
 "tests/**" = ["S101"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 packages = ["vectex"]
 mypy_path = "src"

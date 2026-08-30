@@ -1,6 +1,6 @@
 [project]
 site_name = "Vectex"
-site_description = "Portable, editable SVG fragments from LaTeX or Typst"
+site_description = "Portable, editable SVG fragments from LaTeX"
 docs_dir = "docs"
 site_dir = "site"
 nav = [

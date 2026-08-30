@@ -1,4 +1,4 @@
-"""Compiler interfaces and built-in TeX/Typst implementations."""
+"""Compiler interfaces and built-in TeX implementations."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from .exceptions import CompilationError, ConfigurationError
 from .process import find_executable, run_process
 
 _DOCUMENT_CLASS_RE = re.compile(r"\\documentclass\s*(?:\[([^]]*)\]\s*)?\{([^}]+)\}")
+_DEFAULT_PREAMBLE = "\\documentclass[border=0pt]{standalone}\n\\usepackage{amsmath}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,78 +124,13 @@ class TeXCompiler:
         )
 
 
-class TypstCompiler:
-    """Compile a Typst source string to PDF."""
-
-    name = "typst"
-
-    def compile(self, request: CompileRequest) -> CompilationResult:
-        executable = find_executable(self.name, request.executable or self.name)
-        input_path = request.workdir / "document.typ"
-        output_path = request.workdir / "document.pdf"
-        typst_source = (
-            f"{request.preamble}\n{request.source}"
-            if request.preamble
-            else request.source
-        )
-        input_path.write_text(typst_source, encoding="utf-8")
-        argv = (
-            executable,
-            "compile",
-            "--diagnostic-format=short",
-            *request.extra_args,
-            str(input_path),
-            str(output_path),
-        )
-        completed = run_process(
-            argv,
-            cwd=request.workdir,
-            timeout=request.timeout,
-            error_type=CompilationError,
-        )
-        if not output_path.is_file():
-            raise CompilationError(
-                "compiler reported success but did not create document.pdf",
-                argv=argv,
-                stdout=completed.stdout,
-                stderr=completed.stderr,
-            )
-        return CompilationResult(
-            path=output_path,
-            format="pdf",
-            engine=self.name,
-            argv=argv,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
-        )
-
-
-def compiler_from_name(engine: str) -> Compiler:
-    """Construct a built-in compiler by public engine name."""
-    if engine == "typst":
-        return TypstCompiler()
-    return TeXCompiler(engine)
-
-
-def _tex_document(source: str, preamble: str) -> str:
-    """Build a single-expression document (kept for tests and extensions)."""
-    return _tex_document_many((source,), preamble)
-
-
 def _tex_document_many(
     sources: Sequence[str],
     preamble: str,
 ) -> str:
-    explicit_class = _contains_document_class(preamble)
+    preamble = _resolve_tex_preamble(preamble, ())
     cropped = _uses_cropped_pages(preamble)
-    if explicit_class:
-        header = f"{preamble}\n\\usepackage{{amsmath}}\n"
-    else:
-        header = (
-            "\\documentclass[border=0pt]{standalone}\n"
-            "\\usepackage{amsmath}\n"
-            f"{preamble}\n"
-        )
+    header = f"{preamble if preamble.strip() else _DEFAULT_PREAMBLE}\n"
     if cropped:
         header += (
             "\\usepackage[active,tightpage]{preview}\n\\setlength\\PreviewBorder{0pt}\n"
@@ -326,8 +262,19 @@ def _validate_batch_requests(requests: Sequence[CompileRequest]) -> None:
             raise ConfigurationError("batch compiler requests must share all options")
 
 
-def _contains_document_class(preamble: str) -> bool:
-    return _document_class(preamble) is not None
+def _resolve_tex_preamble(preamble: str, extra_packages: Sequence[str]) -> str:
+    """Resolve the complete custom preamble or default-preamble packages."""
+    if preamble.strip() and extra_packages:
+        raise ConfigurationError("preamble and extra_packages are alternatives")
+    if preamble.strip() and _document_class(preamble) is None:
+        raise ConfigurationError(
+            "preamble must be empty or contain a complete TeX preamble "
+            "with \\documentclass"
+        )
+    declarations = "\n".join(f"\\usepackage{{{name}}}" for name in extra_packages)
+    if not declarations:
+        return preamble
+    return f"{_DEFAULT_PREAMBLE}\n{declarations}"
 
 
 def _document_class(preamble: str) -> tuple[str, tuple[str, ...]] | None:
