@@ -9,6 +9,17 @@ The returned outer group remains recognizable by TexText after a caller inserts
 it into an Inkscape SVG. Vectex also records versioned metadata that is useful
 to applications that manage their own editing workflow.
 
+## Related projects
+
+`vectex` is developed alongside [FigForge](https://github.com/maiani/figforge),
+which composes multi-panel figures, and
+[vecview](https://github.com/maiani/vecview), which draws layered 3D schematics
+as SVG. The three form a suite for publication figures, and each is usable on its
+own.
+
+`vectex` depends on neither. A composition layer needs only `to_svg_document()`,
+so the integration costs no import in either direction.
+
 ## Install
 
 Vectex requires Python 3.11 or newer and installs with `lxml` and Typer:

@@ -291,6 +291,29 @@ VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration
 
 Vectex is distributed under the MIT License.
 
+## Related projects
+
+`vectex` is developed alongside two sibling projects as a suite for building
+publication figures, and is also usable entirely on its own.
+
+| Project | Produces |
+| --- | --- |
+| [FigForge](https://github.com/maiani/figforge) | composed, exported multi-panel figures |
+| **vectex** | editable TeX equations as SVG fragments |
+| [vecview](https://github.com/maiani/vecview) | layered 3D schematics as SVG documents |
+
+FigForge composes; `vectex` and `vecview` produce the vector content it places.
+
+The three are built apart but in step on purpose: all emit editable, diffable
+vector SVG, and two unrelated producers meeting FigForge through a single
+`to_svg_document()` method is the evidence that contract is sufficient. See
+[FigForge's `AGENTS.md`](https://github.com/maiani/figforge/blob/main/AGENTS.md#the-suite).
+
+`vectex` knows nothing about FigForge and does not depend on it. A composition
+layer needs only `to_svg_document()`, which `VectexFragment` exposes, so the
+integration costs no import in either direction. Everything here works standalone
+and against any destination that accepts an SVG fragment.
+
 ## Scope
 
 Vectex produces static, self-contained SVG fragments; it does not manipulate a
