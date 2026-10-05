@@ -82,6 +82,8 @@ jobs:
           python-version: "3.14"
 
       - name: Install the TeX toolchain
+        # dvisvgm is its own package, which texlive-binaries only recommends,
+        # so with --no-install-recommends it has to be named.
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
@@ -91,7 +93,8 @@ jobs:
             texlive-xetex \
             texlive-luatex \
             texlive-fonts-recommended \
-            texlive-binaries
+            texlive-binaries \
+            dvisvgm
 
       - name: Verify the toolchain is complete
         # The integration tests skip themselves when an executable is missing,
