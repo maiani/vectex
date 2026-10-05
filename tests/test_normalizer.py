@@ -235,8 +235,11 @@ def test_to_svg_document_is_a_standalone_svg(simple_svg: bytes) -> None:
     assert fragment.to_svg() in document
     root = etree.fromstring(document.encode())
     assert etree.QName(root).localname == "svg"
-    assert float(root.get("width")) == pytest.approx(fragment.width)
-    assert float(root.get("height")) == pytest.approx(fragment.height)
+    assert root.get("width").endswith("pt"), "a unitless length would read as px"
+    width, height = (
+        float(root.get(key).removesuffix("pt")) for key in ("width", "height")
+    )
+    assert (width, height) == pytest.approx((fragment.width, fragment.height))
     assert tuple(float(part) for part in root.get("viewBox").split(" ")) == (
         fragment.view_box
     )

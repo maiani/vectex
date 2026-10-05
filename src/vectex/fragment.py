@@ -52,8 +52,10 @@ class VectexFragment:
         view_box = " ".join(
             _number(value) for value in (min_x, min_y, self.width, self.height)
         )
-        width = _number(self.width)
-        height = _number(self.height)
+        # Geometry is in TeX points (dvisvgm's user unit). A unitless length
+        # would read as CSS px, drawing every label at 3/4 of its size.
+        width = f"{_number(self.width)}pt"
+        height = f"{_number(self.height)}pt"
         return (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             f'<svg xmlns="{_SVG_NAMESPACE}" '

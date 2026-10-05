@@ -7,11 +7,8 @@ import subprocess
 from collections.abc import Sequence
 from functools import cache
 from pathlib import Path
-from typing import TypeVar
 
 from .exceptions import ExternalToolError, MissingExecutableError
-
-ProcessFailure = TypeVar("ProcessFailure", bound=ExternalToolError)
 
 
 def find_executable(tool: str, executable: str) -> str:
@@ -46,7 +43,7 @@ def tool_identity(executable: str, *, timeout: float = 10.0) -> str:
     return f"{resolved}|{report[0].strip()}" if report else resolved
 
 
-def run_process(
+def run_process[ProcessFailure: ExternalToolError](
     argv: Sequence[str],
     *,
     cwd: Path,

@@ -116,6 +116,51 @@ produces a full page intentionally. Use `size_pt=7` for a semantic font size or
 `scale=0.7` for direct geometric scaling. They are alternatives, as are
 `preamble` and `extra_packages`.
 
+## TikZ pictures
+
+A `tikzpicture` is an ordinary document body, so it renders like any other
+source. Simple pictures need only the package:
+
+```python
+arrow = vectex.render(
+    r"\begin{tikzpicture}\draw[->] (0,0) -- (2,1);\end{tikzpicture}",
+    extra_packages=["tikz"],
+)
+```
+
+`extra_packages` emits `\usepackage` lines and nothing else, so anything that
+needs `\usetikzlibrary`, `\pgfplotsset`, or package options requires a complete
+`preamble` — which replaces the default and must contain `\documentclass`:
+
+```python
+PREAMBLE = r"""\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\usepackage{amsmath}
+\usetikzlibrary{arrows.meta}"""
+```
+
+A worked example lives in
+[`examples/bloch_sphere.py`](https://github.com/maiani/vectex/blob/main/examples/bloch_sphere.py):
+a Bloch sphere with axes, a state vector, angle arcs, and Dirac-notation
+labels, rendered to one cropped fragment of about 163 x 206 pt. Run it during
+development, and pass `--theta` and `--phi` to move the state:
+
+```console
+uv run python examples/bloch_sphere.py --theta 50 --phi 40
+```
+
+The examples are executable documentation: `tests/test_examples.py` runs each
+of them whenever the real-tool tests are enabled, so an example that stops
+working fails the suite rather than rotting in the repository.
+
+### Shadings are not converted
+
+`dvisvgm` does not translate PDF shadings in its native PDF mode, so
+`\shade`, `ball color`, and gradient fills produce a correctly sized fragment
+containing no painted geometry, without raising an error. Use flat fills, or
+build the gradient in the destination document. Ordinary `\fill` colours,
+patterns, opacity, and `pgfplots` axes convert normally.
+
 ## Batches and persistent cache
 
 `render_many()` typesets all requested sources as separately cropped pages in

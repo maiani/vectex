@@ -144,6 +144,30 @@ def test_outer_display_delimiters_use_tight_equivalent_framing(
     assert tight in document
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "\\begin{align*}a&=b\\end{align*}\n",
+        "\\begin{align*}a&=b\\end{align*}\n\n",
+        "\n\\begin{align*}a&=b\\end{align*}  \n",
+    ],
+)
+def test_surrounding_whitespace_never_reaches_the_tight_paragraph(source: str) -> None:
+    """A trailing newline became a blank line inside the zero-width group.
+
+    TeX reads that as a paragraph break, which defeated cropping entirely and
+    produced a full page instead of a fragment.
+    """
+    document = _tex_document_many((source,), "")
+    body = source.strip()
+    assert f"{{\\hsize=0pt\\displaywidth=0pt\\relax\n{body}\n}}" in document
+
+
+def test_trailing_whitespace_does_not_change_a_measured_box() -> None:
+    """Trailing whitespace widened a measured box by one space."""
+    assert _tex_document_many(("$x$",), "") == _tex_document_many(("$x$\n",), "")
+
+
 def test_vertical_prose_does_not_use_a_zero_width_paragraph() -> None:
     document = _tex_document_many(("first paragraph\n\nsecond paragraph",), "")
     assert r"\hsize=0pt\displaywidth=0pt" not in document

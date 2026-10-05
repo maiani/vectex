@@ -22,7 +22,7 @@ so the integration costs no import in either direction.
 
 ## Install
 
-Vectex requires Python 3.11 or newer and installs with `lxml` and Typer:
+Vectex requires Python 3.12 or newer and installs with `lxml` and Typer:
 
 ```console
 python -m pip install vectex
@@ -64,6 +64,23 @@ for explicit executable paths and other configuration.
 On success, Vectex returns one normalized SVG group with local IDs rewritten,
 unsafe SVG features rejected, and independent copies available to callers. See
 [Fragments](fragments.md) for the full object contract.
+
+## Stability
+
+Vectex is beta: the API is settled enough to build on, and remaining churn is
+documented rather than silent.
+
+The supported surface is the names exported in `vectex.__all__` and the `vectex`
+command line; module layout and private helpers may change in any release. The
+package ships a `py.typed` marker, so consumers type-check against that surface.
+Versioning follows Semantic Versioning, and any pre-1.0 break is listed under
+`Changed` or `Removed` in the changelog.
+
+Support is bounded by what continuous integration exercises: unit tests on Linux
+(3.12 and 3.14), macOS, and Windows, and the real TeX toolchain — pdflatex,
+xelatex, lualatex, and dvisvgm — on Linux only. Rendering is expected to work
+anywhere TeX is on `PATH`; on macOS and Windows that is untested rather than
+unsupported, so a failure there is a bug worth reporting.
 
 ## License
 

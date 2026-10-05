@@ -4,24 +4,27 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vectex"
-version = "0.1.0"
+version = "0.2.0"
 description = "Render LaTeX as portable, editable SVG group fragments"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [{ name = "Andrea Maiani", email = "dev@andreamaiani.com" }]
 license = "MIT"
 keywords = ["latex", "svg", "vector-graphics"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
   "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+  "Typing :: Typed",
 ]
 dependencies = ["lxml>=5.0", "typer>=0.12"]
 
@@ -37,6 +40,8 @@ Source = "https://github.com/maiani/vectex"
 svg-py = ["svg.py>=1.5"]
 drawsvg = ["drawsvg>=2.0"]
 all = ["svg.py>=1.5", "drawsvg>=2.0"]
+# Example-only: `--png` rasterizes, which the package itself never does.
+examples = ["cairosvg>=2.7"]
 
 [dependency-groups]
 dev = [
@@ -56,6 +61,7 @@ packages = ["src/vectex"]
 include = [
   "/src",
   "/tests",
+  "/examples",
   "/README.md",
   "/CHANGELOG.md",
   "/LICENSE",
@@ -72,7 +78,7 @@ markers = ["integration: requires explicitly enabled external rendering tools"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["B", "E", "F", "I", "N", "RUF", "S", "UP"]
@@ -80,12 +86,18 @@ ignore = ["S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"examples/**" = ["S101"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 packages = ["vectex"]
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# Example-only, and deliberately not a dependency of the package.
+module = ["cairosvg"]
+ignore_missing_imports = true
 
 [tool.coverage.run]
 branch = true

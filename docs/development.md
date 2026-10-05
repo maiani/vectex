@@ -11,7 +11,7 @@ Run the standard checks before submitting a change:
 ```console
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy src
+uv run mypy src examples
 uv run pytest
 uv run python -m build
 ```
@@ -24,9 +24,35 @@ tests, run:
 VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration
 ```
 
-The routine CI matrix runs unit tests on Python 3.11 and 3.14. Real-tool tests
-remain an explicit release gate on a prepared machine so CI does not repeatedly
-download a full TeX installation.
+The routine CI matrix runs unit tests on Python 3.12 and 3.14 on Linux, and
+once each on macOS and Windows. A separate job installs a real TeX Live and
+runs the integration tests on pushes, on releases, and nightly, but not on
+pull requests, where the TeX download would dominate the run.
+
+## Examples
+
+`examples/` holds runnable scripts that are the realistic end-to-end check:
+they drive TeX and dvisvgm the way a caller does, and they render pictures
+whose correctness is visible.
+
+```console
+uv run python examples/bloch_sphere.py --theta 50 --phi 40
+uv run python examples/figure_labels.py --cache-dir .cache/vectex
+```
+
+Each writes into `examples/out/`, which is ignored by git, and `--output-dir`
+sends the output elsewhere. `uv sync --all-extras` adds `cairosvg`, which the
+`--png` flag needs; the package itself never rasterizes.
+
+They are also tests. `tests/test_examples.py` runs every script in `examples/`
+and calls the `build()` each one exposes, gated behind
+`VECTEX_RUN_INTEGRATION=1` like the other real-tool tests. Two consequences
+worth knowing:
+
+* An example that stops working fails the suite, so the documented code cannot
+  rot silently.
+* A new example is picked up automatically by the glob. Give it a `build()`
+  returning a fragment or a sequence of them, and a `--output-dir` option.
 
 ## Documentation
 

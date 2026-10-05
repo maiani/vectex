@@ -168,6 +168,11 @@ _METRICS_PREAMBLE = r"""
 
 
 def _measured_tex_body(index: int, source: str) -> str:
+    # Surrounding whitespace is not content, and leaving it in place changes the
+    # rendered geometry: a trailing newline becomes a paragraph break inside the
+    # zero-width group below, which defeats cropping and yields a full page,
+    # while a trailing space widens a measured box by a space.
+    source = source.strip()
     if _is_box_compatible_body(source):
         return f"\\vectexmeasure{{{index}}}{{{source}}}"
     tightened = _tightened_display_body(source)

@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
+### Added
+
+- A `py.typed` marker, so the annotations Vectex already checks internally now
+  reach consumers. Without it every downstream `import vectex` resolved to
+  `Any`, silently voiding type checking against this package.
+- Continuous integration against a real TeX toolchain. The `integration` job
+  installs TeX Live, verifies that `pdflatex`, `xelatex`, `lualatex`, and
+  `dvisvgm` are all present — the tests skip themselves when one is missing, so
+  an unchecked install would report a green, empty run — and then runs the
+  integration suite. It runs on pushes, on releases, and nightly, but not on
+  pull requests, where installing TeX would dominate the run.
+- Unit tests on macOS and Windows, covering the platform-dependent halves of
+  executable lookup and path handling.
+- A documented stability policy and platform support matrix in the README and
+  the documentation: what the public API is, what may still change before 1.0,
+  and which platforms continuous integration actually exercises.
+- An `examples/` directory that doubles as an end-to-end test suite.
+  `bloch_sphere.py` renders a TikZ Bloch sphere from a full preamble;
+  `figure_labels.py` renders a batch of maths labels in one compilation and
+  demonstrates the persistent cache. Each exposes a `build()` and an
+  `--output-dir`, and `tests/test_examples.py` globs the directory and runs
+  every script, so a new example needs no registration and a broken one fails
+  the suite. The integration CI job renders them and uploads the pictures as
+  build artifacts.
+- A TikZ section in the rendering guide and the README, including that
+  `extra_packages` cannot express `\usetikzlibrary` and that `dvisvgm`
+  silently drops PDF shadings.
+
+### Changed
+
+- **Python 3.12 is now the floor**, raised from 3.11, matching the sibling
+  projects. Ruff and mypy target 3.12 accordingly, and `run_process` uses PEP
+  695 type-parameter syntax.
+- The package is classified `Development Status :: 4 - Beta`, and declares the
+  operating systems continuous integration covers.
+
+### Fixed
+
+- `to_svg_document()` declares its `width` and `height` in `pt`. Fragment
+  geometry is in TeX points, but the unitless lengths read as CSS px, so any
+  consumer honouring the document's size drew labels at 3/4 of their size.
+- Surrounding whitespace in a source no longer changes what is rendered. A
+  trailing newline — which every triple-quoted Python string has — became a
+  paragraph break inside the tight local paragraph used for environment
+  bodies, silently producing a full US Letter page instead of a cropped
+  fragment; on an inline body it widened the measured box by one space.
+
 ## [0.1.0] - 2026-08-30
 
 ### Added

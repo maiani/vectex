@@ -1,117 +1,73 @@
-# vectex
+# Vectex
 
 [![Test](https://github.com/maiani/vectex/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/maiani/vectex/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/vectex.svg)](https://pypi.org/project/vectex/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 
-`vectex` compiles LaTeX source and returns one portable SVG
-`<g>` fragment. It is a library-level reimplementation of the rendering and
-normalization boundary behind TexText: it does not require Inkscape or access to
-the destination SVG document.
+Vectex compiles TeX source into one self-contained SVG `<g>` fragment, so
+equations and labels in a figure are generated from code and stay editable
+afterwards. Output is deterministic, with stable ids, so a figure can be
+regenerated and diffed in version control; the fragment is also an editable
+TexText object once inserted into an Inkscape document.
 
-The returned group is also recognizable as an editable TexText object after a
-caller inserts it into an Inkscape SVG. Vectex stores both TexText-compatible
-attributes and a richer, versioned metadata record.
+Vectex is a library-level reimplementation of the rendering and normalization
+boundary behind TexText. It needs neither Inkscape nor access to the
+destination document.
 
 ## Install
 
-The required runtime is Python 3.11 or newer; installation includes `lxml` and
-the command-line dependency `typer`:
+Vectex is on PyPI and needs Python 3.12 or newer:
 
-```console
+```bash
 python -m pip install vectex
 ```
 
-Install an optional object-model adapter with one of:
+Rendering also needs a TeX engine (`pdflatex`, `xelatex`, or `lualatex`) and
+`dvisvgm` on `PATH`; TeX Live and MiKTeX ship both. The optional object-model
+adapters install with an extra:
 
-```console
-python -m pip install 'vectex[svg-py]'
-python -m pip install 'vectex[drawsvg]'
+```bash
+python -m pip install 'vectex[svg-py]'   # import svg
+python -m pip install 'vectex[drawsvg]'  # import drawsvg
 python -m pip install 'vectex[all]'
 ```
 
-The distribution names and imports are `svg.py` / `import svg` and `drawsvg` /
-`import drawsvg`.
-
-## Command line
-
-The installed `vectex` command renders a TeX document body to a portable SVG
-fragment on standard output:
-
-```console
-vectex '$E = mc^2$'
-```
-
-Pass `--as-doc` to emit a complete, openable SVG document rather than a
-fragment. Without `-o`, either form is written to standard output:
-
-```console
-vectex '$E = mc^2$' --as-doc > einstein.svg
-```
-
-Use `--output` (or `-o`) to write the selected form to a file:
-
-```console
-vectex '$E = mc^2$' -o einstein-fragment.svg
-vectex '$E = mc^2$' --as-doc -o einstein.svg
-```
-
-For multiline input, read UTF-8 source from a file or standard input:
-
-```console
-vectex --input equation.tex --as-doc -o equation.svg
-printf '%s\n' '$E = mc^2$' | vectex - --as-doc > einstein.svg
-```
-
-`--preamble-file preamble.tex` reads a complete preamble from a file and also
-records its absolute path for later TexText editing. It is an alternative to
-inline `--preamble`. For ordinary package loading, repeat
-`--extra-package NAME` instead of writing a preamble. Reuse persistent render
-records with `--cache-dir PATH`; add `--refresh` to recompile and replace the
-selected record.
-
-Use `--executable NAME=PATH` to override a tool location; repeat it for both
-the engine and `dvisvgm` when needed. Run `vectex --help` for the complete
-option list; `vectex --version` reports the installed version.
-
-## Minimal use
+## Quick start
 
 ```python
 import vectex
 
-fragment = vectex.render(
-    r"mass $m$ and energy $E = mc^2$",
-    engine="pdflatex",
-)
-expression = vectex.render(r"$E = mc^2$")
+fragment = vectex.render(r"mass $m$ and energy $E = mc^2$")
+label = vectex.render(r"$E = mc^2$", size_pt=8, id_prefix="einstein")
 vector = vectex.render(r"$\bm{n}$", extra_packages=("bm",))
 
-svg_text = fragment.to_svg()
-lxml_group = fragment.to_lxml()
-document = fragment.to_svg_document()  # complete file-ready SVG
-fragment.write_svg_document("label.svg")  # same document, written to disk
+svg_text = fragment.to_svg()  # the <g> fragment as a string
+lxml_group = fragment.to_lxml()  # a fresh lxml element
+document = fragment.to_svg_document()  # a complete, openable SVG document
+fragment.write_svg_document("label.svg")  # the same document, on disk
 
 print(fragment.width, fragment.height, fragment.view_box)
 print(fragment.source, fragment.engine, fragment.metadata)
 ```
 
-TeX input is always a literal document body, the same convention TexText uses:
-`$...$` marks inline mathematics, `\[...\]` marks display mathematics, and
-everything else is prose. Complete environments such as `align*` can be used
-directly; inner environments need their normal TeX context. `amsmath` is loaded
-by default, so `\text{...}` works in math expressions.
+The outer group of `label` has `id="einstein-root"`, and rendering the same
+input again produces the same bytes.
 
-The default TeX template uses a zero-border `standalone` page cropped to each
-fragment and loads `amsmath`. A nonempty `preamble` replaces that complete
-preamble and must contain `\documentclass`, so
-`preamble=r"\documentclass{article}"` restores full-page geometry. Use
-`extra_packages=("bm",)` when only additional `\usepackage` declarations are
-needed. `preamble` and `extra_packages` are mutually exclusive.
+TeX input is always a literal document body, the convention TexText uses:
+`$...$` marks inline mathematics, `\[...\]` display mathematics, and everything
+else is prose. Complete environments such as `align*` work directly. `amsmath`
+is loaded by default, so `\text{...}` works in math.
 
-Use either `size_pt=7` to express a desired font size or the lower-level
-`scale=0.7`; passing both is an error. TeX sizing is resolved against the
-selected document class (10 pt by default).
+The default template is a zero-border `standalone` page cropped to each
+fragment. `extra_packages=("bm",)` adds `\usepackage` lines; a nonempty
+`preamble` replaces the whole preamble and must contain `\documentclass`
+(`preamble=r"\documentclass{article}"` restores full-page geometry). The two
+options are mutually exclusive.
+
+Size with `size_pt=7` for a target font size, or the lower-level `scale=0.7`;
+passing both is an error. TeX sizing is resolved against the document class
+(10 pt by default).
 
 Every call uses a fresh temporary directory and runs two stages:
 
@@ -119,10 +75,51 @@ Every call uses a fresh temporary directory and runs two stages:
 source -> pdflatex/xelatex/lualatex -> PDF -> dvisvgm -> SVG -> lxml -> <g>
 ```
 
+## Command line
+
+The `vectex` command renders a document body to a fragment on standard output:
+
+```bash
+vectex '$E = mc^2$'
+vectex '$E = mc^2$' --as-doc > einstein.svg      # a complete SVG document
+vectex '$E = mc^2$' --as-doc -o einstein.svg     # or write it with -o/--output
+vectex --input equation.tex --as-doc -o equation.svg
+printf '%s\n' '$E = mc^2$' | vectex - --as-doc > einstein.svg
+```
+
+`--extra-package NAME` (repeatable) loads a package; `--preamble` or
+`--preamble-file preamble.tex` supplies a complete preamble, and the file form
+also records its absolute path for later TexText editing. `--cache-dir PATH`
+reuses render records, and `--refresh` recompiles the selected one.
+`--id-prefix`, `--size-pt`, `--engine`, and `--executable NAME=PATH` mirror the
+Python options. `vectex --help` lists everything; `vectex --version` reports the
+installed version.
+
+## TikZ pictures
+
+A `tikzpicture` is an ordinary document body:
+
+```python
+arrow = vectex.render(
+    r"\begin{tikzpicture}\draw[->] (0,0) -- (2,1);\end{tikzpicture}",
+    extra_packages=["tikz"],
+)
+```
+
+`extra_packages` emits only `\usepackage` lines, so `\usetikzlibrary`,
+`\pgfplotsset`, and package options need a complete `preamble`.
+[`examples/bloch_sphere.py`](examples/bloch_sphere.py) is a worked example, and
+[`examples/figure_labels.py`](examples/figure_labels.py) renders a batch of
+labels in one compilation. The
+[rendering guide](docs/rendering.md#tikz-pictures) records one converter
+limitation: `dvisvgm` does not translate PDF shadings, so `\shade` and
+`ball color` yield a correctly sized fragment with nothing painted in it. Flat
+fills, patterns, opacity, and `pgfplots` convert normally.
+
 ## Embedding and adapters
 
-`to_lxml()` returns a fresh element on every call, so appending or editing it
-cannot mutate the fragment's canonical serialization:
+`to_lxml()` returns a fresh element on every call, so editing it cannot mutate
+the fragment's canonical serialization:
 
 ```python
 from lxml import etree
@@ -131,18 +128,17 @@ document = etree.fromstring('<svg xmlns="http://www.w3.org/2000/svg"/>')
 document.append(fragment.to_lxml())
 ```
 
-The optional adapters deliberately preserve the complete normalized XML rather
-than translating arbitrary SVG into a smaller object model:
+The optional adapters wrap the complete normalized XML rather than translating
+arbitrary SVG into a smaller object model:
 
 ```python
-import svg
 import drawsvg
+import svg
 
-svg_py_group = fragment.to_svg_py()
 svg_py_document = svg.SVG(
     width=fragment.width,
     height=fragment.height,
-    elements=[svg_py_group],
+    elements=[fragment.to_svg_py()],
 )
 
 drawing = drawsvg.Drawing(fragment.width, fragment.height)
@@ -151,21 +147,16 @@ drawing.append(fragment.to_drawsvg())
 
 ## TexText editing in Inkscape
 
-TexText detects editable nodes from attributes in its namespace on the selected
-outer `<g>`. Vectex emits the current compatibility fields: encoded source,
-compiler, PDF-to-SVG converter marker, preamble-file path, scale, alignment,
-version, and transform Jacobian.
+TexText recognizes editable nodes by attributes in its namespace on the outer
+`<g>`. Vectex writes the current compatibility fields: encoded source, compiler,
+converter marker, preamble-file path, scale, alignment, version, and transform
+Jacobian. Insert the outer group itself and select that whole group before
+opening TexText; TexText rejects a selected nested path or subgroup. Because
+both tools treat the stored text as a document body, it recompiles without
+translation.
 
-Insert the outer group itself into an SVG and select that whole group before
-opening TexText. Selecting only a nested path or subgroup is intentionally
-rejected by TexText.
-
-The stored TexText `text` is the source itself, since both tools treat it as a
-document body. The same `$...$`, `\[...\]`, and environment syntax therefore
-recompiles without translation when the object is edited in TexText.
-
-TexText represents its preamble as a file path, while Vectex accepts preamble
-content. If re-editing must use the same custom preamble, pass both values:
+TexText stores its preamble as a file path, while Vectex accepts preamble
+content. If re-editing must use the same custom preamble, pass both:
 
 ```python
 fragment = vectex.render(
@@ -175,16 +166,14 @@ fragment = vectex.render(
 )
 ```
 
-The path must remain accessible to TexText on the editing machine. The preamble
-content itself is retained in Vectex metadata, but TexText's compatibility field
-can carry only its path. Pass `textext_compatible=False` to omit all TexText
-attributes.
+The path must be accessible to TexText on the editing machine; the preamble
+content itself is kept in Vectex metadata. Pass `textext_compatible=False` to
+omit all TexText attributes.
 
 ## Executable discovery and configuration
 
-Built-in components use `shutil.which` to resolve `pdflatex`, `xelatex`,
-`lualatex`, and `dvisvgm`. Exact overrides make discovery explicit and
-testable:
+Built-in components resolve `pdflatex`, `xelatex`, `lualatex`, and `dvisvgm`
+with `shutil.which`. Exact overrides make discovery explicit:
 
 ```python
 fragment = vectex.render(
@@ -199,124 +188,152 @@ fragment = vectex.render(
 )
 ```
 
-Argument options are sequences, never shell command strings. Vectex never uses
-`shell=True`. Nonzero exits and timeouts raise structured `CompilationError` or
-`ConversionError` instances with argv, return code, stdout, and stderr.
-
-Applications may implement the small `Compiler` and `Converter` protocols and
-pass component objects instead of built-in names.
+Argument options are sequences, never shell strings, and Vectex never uses
+`shell=True`. Nonzero exits and timeouts raise `CompilationError` or
+`ConversionError` carrying argv, return code, stdout, and stderr. Applications
+may implement the `Compiler` and `Converter` protocols and pass component
+objects instead of built-in names.
 
 ## Batch rendering and disk cache
 
-`render_many([a, b, ...])` shares one compiler and one dvisvgm invocation while
-preserving each expression's crop and measurable baseline. A source may also be
-a `RenderItem` carrying any option that shapes its fragment; those left as
-`None` take the batch value. Items that share a compilation are grouped and
-rendered together, so a batch of labels differing only in size still costs one
-invocation, while an item with its own preamble or engine forms its own group.
-Fragments are returned in input order, and `render()` accepts a `RenderItem`
-as well. `cache_dir`, `refresh`, and `unique_ids` describe how a call runs
-rather than what it produces, and stay on the call.
+`render_many([a, b, ...])` shares one compiler and one `dvisvgm` invocation
+while preserving each expression's crop and baseline. A source may also be a
+`RenderItem` carrying any option that shapes its fragment; options left as
+`None` take the batch value. Items that can share a compilation are grouped, so
+labels differing only in size still cost one invocation, while an item with its
+own preamble or engine forms its own group. Fragments come back in input order.
+`render()` also accepts a `RenderItem`.
 
-The optional persistent cache is enabled with `cache_dir=` or
-`VECTEX_CACHE_DIR`. Entries are keyed by all output-driving options and by the
-identity of the installed tools -- built-in components contribute the resolved
-path and reported version of their executable, so records are not reused across
-a TeX or dvisvgm upgrade, and a component object may declare its own
-`identity()`. Entries are checksummed and written atomically; corrupt entries
-are treated as misses. `refresh=True` recompiles and replaces one record, and
-`vectex.clear_cache(directory)` removes only Vectex's namespaced records and
-returns the number removed.
+The persistent cache is enabled with `cache_dir=` or `VECTEX_CACHE_DIR`. Entries
+are keyed by every output-driving option and by the identity of the installed
+tools (resolved path and reported version for built-in components, or a
+component's own `identity()`), so records are not reused across a TeX or
+`dvisvgm` upgrade. Entries are checksummed and written atomically, and corrupt
+ones are treated as misses. `refresh=True` recompiles one record, and
+`vectex.clear_cache(directory)` removes only Vectex's records and returns how
+many it removed.
 
 ## Fragment guarantees
 
 A successful render returns exactly one SVG `<g>` root with:
 
 - copied converter definitions and visible elements;
-- a deterministic input-derived ID prefix and rewritten `href`, `xlink:href`, and
-  `url(#...)` references, including inline style attributes;
+- a deterministic, input-derived id prefix, with `href`, `xlink:href`, and
+  `url(#...)` references rewritten, including inside inline styles;
 - the source viewport represented by an inner matrix transform;
-- normalized width, height, view box, scale, and measurable baseline properties;
-- inheritable default black glyph fills, so `fill` on an enclosing SVG group
-  recolours a label, while explicitly authored non-black colours are preserved;
-- deterministic repeated serialization of that fragment;
-- a Vectex `<metadata>` child containing format version, original source,
-  engine, converter, geometry, preamble/options, and adapter-independent data;
-- TexText-recognized edit attributes unless explicitly disabled.
+- normalized width, height, view box, scale, and measurable baseline;
+- inheritable default black glyph fills, so `fill` on an enclosing group
+  recolours a label while explicitly coloured glyphs keep their colour;
+- deterministic repeated serialization;
+- a Vectex `<metadata>` child with format version, source, engine, converter,
+  geometry, and preamble/options;
+- TexText edit attributes unless disabled.
 
-Identical render inputs serialize identically, while changed output-driving
-inputs receive a different namespace. Use `unique_ids=True` when embedding the
-same render more than once in one SVG, or supply an explicit `id_prefix`.
-`render_many(..., id_prefix="labels")` suffixes it by input position.
-
-The outer group is named from that prefix: `id_prefix="einstein"` gives
-`id="einstein-root"`, while rewritten definitions use IDs such as
-`einstein-0`. The CLI exposes this as `--id-prefix einstein`.
+Identical render inputs serialize identically, and changed output-driving
+inputs get a different namespace. `id_prefix="einstein"` names the outer group
+`einstein-root` and rewritten definitions `einstein-0`, …; the CLI spells it
+`--id-prefix einstein`. `render_many(..., id_prefix="labels")` suffixes the
+prefix by input position. Use `unique_ids=True` when embedding the same render
+more than once in one SVG.
 
 ## Security and trust assumptions
 
-The XML parser disables DTD loading, entity resolution, network access, recovery,
-comments, and processing instructions. Normalization rejects scripts,
-`foreignObject`, SVG animation, event handlers, document CSS `<style>` elements,
-CSS imports, external hrefs/URLs, duplicate IDs, and unresolved local references.
-This conservative policy avoids active content and dependencies on destination
-document CSS.
+The XML parser disables DTD loading, entity resolution, network access,
+recovery, comments, and processing instructions. Normalization rejects scripts,
+`foreignObject`, SVG animation, event handlers, `<style>` elements, CSS imports,
+external hrefs and URLs, duplicate ids, and unresolved local references, so a
+fragment carries no active content and no dependency on destination CSS.
 
-LaTeX is a powerful program, not a safe sandbox. Vectex passes
-`-no-shell-escape` to built-in TeX engines, but a malicious source or trusted
-extra compiler option can still read files or consume resources according to the
-compiler's capabilities. Only compile trusted source, and use an OS/container
-sandbox when processing untrusted input. Executable overrides, preamble content,
-and extra argv values are trusted application configuration.
+LaTeX is a powerful program, not a sandbox. Vectex passes `-no-shell-escape` to
+the built-in engines, but a malicious source or compiler option can still read
+files or consume resources. Compile only trusted source, and use an OS or
+container sandbox for untrusted input. Executable overrides, preamble content,
+and extra argv values are trusted configuration.
 
-## Development and packaging
+## Stability and supported platforms
 
-Unit tests use checked-in SVG fixtures and mocked subprocesses; they need no TeX
+Vectex is beta. The API is settled enough to build on, and what may still change
+is written down here rather than discovered in a release.
+
+**Public API.** The supported surface is the names in `vectex.__all__` and the
+`vectex` command-line interface. Module layout, private helpers, and the shape
+of intermediate records may change in any release. The package ships a
+`py.typed` marker, so consumers type-check against that surface.
+
+**Versioning.** Vectex follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Before 1.0 a minor release may still break the public API, but never silently:
+every break is listed under `Changed` or `Removed` in
+[`CHANGELOG.md`](CHANGELOG.md). Patch releases never break it. 1.0 will freeze
+the surface above for the 1.x series.
+
+**Output stability** is a separate and stronger promise: identical render inputs
+serialize identically (see [Fragment guarantees](#fragment-guarantees)). Treat a
+change in bytes for unchanged inputs as a bug.
+
+**Supported platforms.** Vectex is pure Python driving an external TeX
+toolchain, so support is bounded by what continuous integration exercises:
+
+| | Python | Unit tests | Real TeX toolchain |
+| --- | --- | --- | --- |
+| Linux | 3.12 and 3.14 | yes | yes (Python 3.14): pdflatex, xelatex, lualatex, dvisvgm |
+| macOS | 3.14 | yes | not exercised |
+| Windows | 3.14 | yes | not exercised |
+
+Python 3.13 is not built separately, on the assumption that a pure-Python
+package passing at both ends of its range passes between them. On macOS and
+Windows the unit suite covers executable lookup and path handling, but no job
+installs TeX: rendering is expected to work with TeX on `PATH` and is not
+verified by CI. Report a platform failure as a bug; the gap is in the testing,
+not the intent.
+
+## Development
+
+Unit tests use checked-in SVG fixtures and mocked subprocesses, and need no TeX
 installation:
 
-```console
+```bash
 uv sync --all-extras
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy src
+uv run mypy src examples
 uv run pytest
 uv run python -m build
 ```
 
-Run optional real-tool tests only when explicitly requested:
+The real-tool tests are opt-in locally because they need TeX. They include
+`tests/test_examples.py`, which runs every script in `examples/`:
 
-```console
+```bash
 VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration
+uv run python examples/bloch_sphere.py --theta 50 --phi 40
 ```
 
-Vectex is distributed under the MIT License.
+Continuous integration runs the real-tool tests against TeX Live on every push,
+every release, and nightly. That job first checks that each executable is
+present, because the tests skip themselves when a tool is missing and a silent
+skip would look like a pass.
 
 ## Related projects
 
-`vectex` is developed alongside two sibling projects as a suite for building
-publication figures, and is also usable entirely on its own.
+Vectex is developed alongside [FigForge](https://github.com/maiani/figforge),
+which composes multi-panel figures, and two other producers of editable SVG:
+[vecview](https://github.com/maiani/vecview) (layered 3D schematics) and cirquit
+(circuit schematics). All four share one premise: figures generated from code,
+with stable ids and byte-identical output, that stay editable in Inkscape.
 
-| Project | Produces |
-| --- | --- |
-| [FigForge](https://github.com/maiani/figforge) | composed, exported multi-panel figures |
-| **vectex** | editable TeX equations as SVG fragments |
-| [vecview](https://github.com/maiani/vecview) | layered 3D schematics as SVG documents |
+Vectex does not depend on any of them. A composition tool needs only
+`VectexFragment.to_svg_document()`, so the integration costs no import in either
+direction, and Vectex works the same against any destination that accepts SVG.
 
-FigForge composes; `vectex` and `vecview` produce the vector content it places.
+## Documentation
 
-The three are built apart but in step on purpose: all emit editable, diffable
-vector SVG, and two unrelated producers meeting FigForge through a single
-`to_svg_document()` method is the evidence that contract is sufficient. See
-[FigForge's `AGENTS.md`](https://github.com/maiani/figforge/blob/main/AGENTS.md#the-suite).
+- [Rendering](docs/rendering.md): the pipeline, baselines, TexText contract, and
+  trust policy
+- [Fragments](docs/fragments.md): placement, anchors, and caller integration
+- [Development](docs/development.md): toolchain and releases
 
-`vectex` knows nothing about FigForge and does not depend on it. A composition
-layer needs only `to_svg_document()`, which `VectexFragment` exposes, so the
-integration costs no import in either direction. Everything here works standalone
-and against any destination that accepts an SVG fragment.
+Build the site locally with `uv run zensical build`.
 
-## Scope
+## License
 
-Vectex produces static, self-contained SVG fragments; it does not manipulate a
-destination SVG document. See [Rendering](docs/rendering.md) for the
-built-in pipeline, baseline behavior, TexText contract, and trust policy,
-and [Fragments](docs/fragments.md) for placement and caller integration.
+MIT

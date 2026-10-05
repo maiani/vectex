@@ -10,3 +10,4 @@ dist/
 site/
 .pixi/
 *.py[cod]
+examples/out/

@@ -25,10 +25,20 @@ documents, implement an SVG editor, or provide a GUI.
 
 ## Development
 
-- Supported Python: 3.11 and newer.
+- Supported Python: 3.12 and newer.
 - Install a complete development environment with `uv sync --all-extras`.
 - Run `uv run ruff format --check .`, `uv run ruff check .`,
-  `uv run mypy src`, and `uv run pytest` before reporting a change complete.
+  `uv run mypy src examples`, and `uv run pytest` before reporting a change
+  complete.
+- `examples/` is the realistic end-to-end check, and it is also a test suite:
+  `tests/test_examples.py` runs every script and its `build()` under
+  `VECTEX_RUN_INTEGRATION=1`. Run
+  `VECTEX_RUN_INTEGRATION=1 uv run pytest -m integration` after touching the
+  compiler, the converter, or the normalizer. A wrong page size or a lost
+  shading is invisible in a unit test and obvious in a rendered picture.
+- A new example needs a `build()` returning a fragment or a sequence of them,
+  and an `--output-dir` option; the test glob then picks it up with no
+  registration. Examples must not become a second home for library code.
 - Unit tests must not require TeX or dvisvgm. Real-tool integration
   tests must be explicitly enabled and skip cleanly when tools are absent.
 - Add a regression fixture or mocked-process test for every normalization,

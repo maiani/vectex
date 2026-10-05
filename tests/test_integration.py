@@ -108,3 +108,17 @@ def test_real_package_name_convenience() -> None:
     fragment = vectex.render(r"$\bm{n}$", extra_packages=("bm",))
     assert fragment.width > 0
     assert fragment.metadata["compiler_options"]["extra_packages"] == ["bm"]
+
+
+def test_real_tikz_picture_crops_to_the_drawing() -> None:
+    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
+        pytest.skip("pdflatex and dvisvgm are required")
+    # The trailing newline is the regression: it once defeated cropping and
+    # returned a full US Letter page instead of the picture.
+    fragment = vectex.render(
+        "\\begin{tikzpicture}\\draw (0,0) circle (1);\\end{tikzpicture}\n",
+        extra_packages=["tikz"],
+    )
+    assert 0 < fragment.width < 100
+    assert 0 < fragment.height < 100
+    assert fragment.to_svg().startswith("<g")

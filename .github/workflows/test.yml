@@ -3,6 +3,10 @@ name: Test
 on:
   pull_request:
   push:
+  schedule:
+    # Nightly, so a toolchain change in TeX Live or dvisvgm surfaces here
+    # rather than in a user's first render.
+    - cron: "0 4 * * *"
   workflow_call:
     inputs:
       ref:
@@ -16,12 +20,21 @@ permissions:
 
 jobs:
   unit:
-    name: Unit tests (Python ${{ matrix.python-version }})
+    name: Unit tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.14"]
-    runs-on: ubuntu-latest
+        # The supported Python range is covered at its ends on Linux; macOS and
+        # Windows run one version each, to catch the platform-dependent halves
+        # of executable lookup and path handling rather than the language.
+        os: [ubuntu-latest]
+        python-version: ["3.12", "3.14"]
+        include:
+          - os: macos-latest
+            python-version: "3.14"
+          - os: windows-latest
+            python-version: "3.14"
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
         uses: actions/checkout@v5
@@ -41,6 +54,75 @@ jobs:
 
       - name: Run unit tests
         run: uv run pytest -m "not integration"
+
+  integration:
+    name: Integration tests (real TeX toolchain)
+    # Slow: installing TeX Live dominates the run. Pull requests get the fast
+    # feedback; pushes, releases (workflow_call), and the nightly run get the
+    # real toolchain.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install the TeX toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-xetex \
+            texlive-luatex \
+            texlive-fonts-recommended \
+            texlive-binaries
+
+      - name: Verify the toolchain is complete
+        # The integration tests skip themselves when an executable is missing,
+        # so without this a broken install would report a green, empty run.
+        run: |
+          status=0
+          for tool in pdflatex xelatex lualatex dvisvgm; do
+            if ! command -v "$tool" >/dev/null; then
+              echo "::error::$tool is missing; integration tests would silently skip"
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Install uv
+        run: python -m pip install --upgrade uv
+
+      - name: Sync the locked development environment
+        run: uv sync --all-extras --locked
+
+      - name: Run integration tests against the real toolchain
+        env:
+          VECTEX_RUN_INTEGRATION: "1"
+        run: uv run pytest -m integration
+
+      - name: Render the examples
+        # tests/test_examples.py already runs these, but rendering them here
+        # leaves the pictures as build artifacts to look at when a change is
+        # geometric rather than a pass/fail.
+        run: |
+          uv run python examples/bloch_sphere.py
+          uv run python examples/figure_labels.py
+
+      - name: Upload the rendered examples
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples
+          path: examples/out/
+          if-no-files-found: error
 
   quality:
     name: Quality and distributions
