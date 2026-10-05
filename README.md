@@ -11,6 +11,12 @@ afterwards. Output is deterministic, with stable ids, so a figure can be
 regenerated and diffed in version control; the fragment is also an editable
 TexText object once inserted into an Inkscape document.
 
+<p align="center">
+  <img src="docs/images/readme.svg" alt="The time-dependent Schrodinger equation typeset by TeX as an SVG fragment" width="640">
+</p>
+
+<p align="center"><sub>One display equation, compiled by real TeX into an SVG fragment, from <code>docs/readme_figure.py</code>.</sub></p>
+
 VecTeX is a library-level reimplementation of the rendering and normalization
 boundary behind TexText. It needs neither Inkscape nor access to the
 destination document.
@@ -317,8 +323,8 @@ skip would look like a pass.
 
 VecTeX is developed alongside [FigWorks](https://github.com/maiani/figworks),
 which composes multi-panel figures, and two other producers of editable SVG:
-[VecView](https://github.com/maiani/vecview) (layered 3D schematics) and VecWire
-(circuit schematics). All four share one premise: figures generated from code,
+[VecView](https://github.com/maiani/vecview) (layered 3D schematics) and
+[VecWire](https://github.com/maiani/vecwire) (circuit schematics). All four share one premise: figures generated from code,
 with stable ids and byte-identical output, that stay editable in Inkscape.
 
 VecTeX does not depend on any of them. A composition tool needs only
