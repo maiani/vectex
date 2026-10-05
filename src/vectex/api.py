@@ -239,7 +239,7 @@ def render_many(
 
 
 def clear_cache(cache_dir: str | PathLike[str] | None = None) -> int:
-    """Clear Vectex entries from the configured cache and return their count."""
+    """Clear VecTeX entries from the configured cache and return their count."""
     return cache.clear(cache_dir)
 
 

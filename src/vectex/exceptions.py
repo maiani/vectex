@@ -1,4 +1,4 @@
-"""Public exception hierarchy for vectex."""
+"""Public exception hierarchy for VecTeX."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 
 class VectexError(Exception):
-    """Base class for all expected vectex failures."""
+    """Base class for all expected VecTeX failures."""
 
 
 class ConfigurationError(VectexError, ValueError):

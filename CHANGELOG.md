@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-05
+
+### Changed
+
+- Prose spells the project VecTeX; the distribution, import, and command names
+  stay `vectex`. The sibling projects are now FigWorks (formerly FigForge) and
+  VecWire (formerly cirquit).
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
 
-- A `py.typed` marker, so the annotations Vectex already checks internally now
+- A `py.typed` marker, so the annotations VecTeX already checks internally now
   reach consumers. Without it every downstream `import vectex` resolved to
   `Any`, silently voiding type checking against this package.
 - Continuous integration against a real TeX toolchain. The `integration` job

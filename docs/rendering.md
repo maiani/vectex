@@ -26,7 +26,7 @@ The bundled pathway compiles each source page to PDF and converts it with
 different intermediate format or SVG converter can provide their own
 `Compiler` and `Converter` implementations.
 
-For inline or prose TeX bodies, Vectex derives `fragment.baseline` from the
+For inline or prose TeX bodies, VecTeX derives `fragment.baseline` from the
 measured height and depth of the typeset box. Display and other vertical bodies
 cannot be measured in that box and therefore have no baseline unless the caller
 supplies `baseline=` explicitly.
@@ -46,7 +46,7 @@ fragment = vectex.render(
 )
 ```
 
-Arguments are sequences, never shell command strings. Vectex does not invoke a
+Arguments are sequences, never shell command strings. VecTeX does not invoke a
 shell. A failed command or timeout raises a structured `CompilationError` or
 `ConversionError` containing the command context.
 
@@ -67,7 +67,7 @@ printf '%s\n' '$E = mc^2$' | vectex - --as-doc > einstein.svg
 ```
 
 `--preamble-file preamble.tex` is the file-backed alternative to `--preamble`.
-Vectex reads its UTF-8 content and records the absolute path in the fragment's
+VecTeX reads its UTF-8 content and records the absolute path in the fragment's
 TexText compatibility metadata. Either form must provide a complete preamble
 containing `\documentclass`.
 
@@ -202,7 +202,7 @@ tools: built-in components report the resolved path and reported version of
 their executable, so records compiled before a TeX or dvisvgm upgrade are not
 served afterwards. A component object may declare its own `identity()` instead.
 Pass `refresh=True` to recompile and replace one record without discarding the
-rest, or call `vectex.clear_cache(".cache")` to remove all versioned Vectex
+rest, or call `vectex.clear_cache(".cache")` to remove all versioned VecTeX
 entries.
 
 The CLI exposes the same render-cache controls:
@@ -218,17 +218,17 @@ TexText-compatible attributes are emitted by default. Keep the outer group
 intact when inserting the result into an SVG, and select that whole group before
 editing in TexText. Pass `textext_compatible=False` to omit these attributes.
 
-`preamble` stores preamble content in Vectex metadata. If a TexText edit must
+`preamble` stores preamble content in VecTeX metadata. If a TexText edit must
 reuse a shared preamble file, also provide `textext_preamble_file` with a path
 that will be available on the editing machine.
 
-Vectex tests the TexText metadata and detection contract. A complete
+VecTeX tests the TexText metadata and detection contract. A complete
 Inkscape/TexText GUI round trip remains an optional system-level integration
 check rather than a library requirement.
 
 ## Trust boundary
 
-LaTeX is not a sandbox. Vectex disables TeX shell escape for its
+LaTeX is not a sandbox. VecTeX disables TeX shell escape for its
 built-in TeX engines, but trusted source may still read files or consume
 resources according to compiler capabilities. Use an OS or container sandbox
 when processing untrusted input.

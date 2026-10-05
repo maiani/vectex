@@ -49,7 +49,7 @@ without one, because the box, not the type, is what got aligned.
 
 ## Integration boundary
 
-Vectex creates a normalized fragment and reports its geometry. The caller owns
+VecTeX creates a normalized fragment and reports its geometry. The caller owns
 insertion into a destination document, placement, replacement, GUI behavior,
 and Inkscape selection management. The returned outer group should remain
 intact when TexText compatibility is needed.
@@ -77,7 +77,7 @@ When their optional dependencies are installed, `to_svg_py()` and
 
 ## Portability
 
-Vectex copies only the definitions required by visible SVG content and rewrites
+VecTeX copies only the definitions required by visible SVG content and rewrites
 local IDs and references to a deterministic prefix derived from all
 output-driving inputs. Identical calls therefore serialize identically. Use
 `unique_ids=True` when inserting the same render more than once into one SVG,
@@ -98,6 +98,6 @@ geometry, options, and format version. It supplements TexText-compatible
 attributes on the outer group rather than replacing them.
 
 TexText can preserve only a preamble *file path* in its compatibility
-attributes. Vectex preserves the actual `preamble` content in its own metadata;
+attributes. VecTeX preserves the actual `preamble` content in its own metadata;
 pass `textext_preamble_file` as well when later TexText editing must load those
 same packages or definitions.

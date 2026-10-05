@@ -1,23 +1,23 @@
-# Vectex
+# VecTeX
 
 [![Test](https://github.com/maiani/vectex/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/maiani/vectex/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/vectex.svg)](https://pypi.org/project/vectex/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 
-Vectex compiles TeX source into one self-contained SVG `<g>` fragment, so
+VecTeX compiles TeX source into one self-contained SVG `<g>` fragment, so
 equations and labels in a figure are generated from code and stay editable
 afterwards. Output is deterministic, with stable ids, so a figure can be
 regenerated and diffed in version control; the fragment is also an editable
 TexText object once inserted into an Inkscape document.
 
-Vectex is a library-level reimplementation of the rendering and normalization
+VecTeX is a library-level reimplementation of the rendering and normalization
 boundary behind TexText. It needs neither Inkscape nor access to the
 destination document.
 
 ## Install
 
-Vectex is on PyPI and needs Python 3.12 or newer:
+VecTeX is on PyPI and needs Python 3.12 or newer:
 
 ```bash
 python -m pip install vectex
@@ -148,14 +148,14 @@ drawing.append(fragment.to_drawsvg())
 ## TexText editing in Inkscape
 
 TexText recognizes editable nodes by attributes in its namespace on the outer
-`<g>`. Vectex writes the current compatibility fields: encoded source, compiler,
+`<g>`. VecTeX writes the current compatibility fields: encoded source, compiler,
 converter marker, preamble-file path, scale, alignment, version, and transform
 Jacobian. Insert the outer group itself and select that whole group before
 opening TexText; TexText rejects a selected nested path or subgroup. Because
 both tools treat the stored text as a document body, it recompiles without
 translation.
 
-TexText stores its preamble as a file path, while Vectex accepts preamble
+TexText stores its preamble as a file path, while VecTeX accepts preamble
 content. If re-editing must use the same custom preamble, pass both:
 
 ```python
@@ -167,7 +167,7 @@ fragment = vectex.render(
 ```
 
 The path must be accessible to TexText on the editing machine; the preamble
-content itself is kept in Vectex metadata. Pass `textext_compatible=False` to
+content itself is kept in VecTeX metadata. Pass `textext_compatible=False` to
 omit all TexText attributes.
 
 ## Executable discovery and configuration
@@ -188,7 +188,7 @@ fragment = vectex.render(
 )
 ```
 
-Argument options are sequences, never shell strings, and Vectex never uses
+Argument options are sequences, never shell strings, and VecTeX never uses
 `shell=True`. Nonzero exits and timeouts raise `CompilationError` or
 `ConversionError` carrying argv, return code, stdout, and stderr. Applications
 may implement the `Compiler` and `Converter` protocols and pass component
@@ -225,7 +225,7 @@ A successful render returns exactly one SVG `<g>` root with:
 - inheritable default black glyph fills, so `fill` on an enclosing group
   recolours a label while explicitly coloured glyphs keep their colour;
 - deterministic repeated serialization;
-- a Vectex `<metadata>` child with format version, source, engine, converter,
+- a VecTeX `<metadata>` child with format version, source, engine, converter,
   geometry, and preamble/options;
 - TexText edit attributes unless disabled.
 
@@ -244,7 +244,7 @@ recovery, comments, and processing instructions. Normalization rejects scripts,
 external hrefs and URLs, duplicate ids, and unresolved local references, so a
 fragment carries no active content and no dependency on destination CSS.
 
-LaTeX is a powerful program, not a sandbox. Vectex passes `-no-shell-escape` to
+LaTeX is a powerful program, not a sandbox. VecTeX passes `-no-shell-escape` to
 the built-in engines, but a malicious source or compiler option can still read
 files or consume resources. Compile only trusted source, and use an OS or
 container sandbox for untrusted input. Executable overrides, preamble content,
@@ -252,7 +252,7 @@ and extra argv values are trusted configuration.
 
 ## Stability and supported platforms
 
-Vectex is beta. The API is settled enough to build on, and what may still change
+VecTeX is beta. The API is settled enough to build on, and what may still change
 is written down here rather than discovered in a release.
 
 **Public API.** The supported surface is the names in `vectex.__all__` and the
@@ -260,7 +260,7 @@ is written down here rather than discovered in a release.
 of intermediate records may change in any release. The package ships a
 `py.typed` marker, so consumers type-check against that surface.
 
-**Versioning.** Vectex follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+**Versioning.** VecTeX follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Before 1.0 a minor release may still break the public API, but never silently:
 every break is listed under `Changed` or `Removed` in
 [`CHANGELOG.md`](CHANGELOG.md). Patch releases never break it. 1.0 will freeze
@@ -270,7 +270,7 @@ the surface above for the 1.x series.
 serialize identically (see [Fragment guarantees](#fragment-guarantees)). Treat a
 change in bytes for unchanged inputs as a bug.
 
-**Supported platforms.** Vectex is pure Python driving an external TeX
+**Supported platforms.** VecTeX is pure Python driving an external TeX
 toolchain, so support is bounded by what continuous integration exercises:
 
 | | Python | Unit tests | Real TeX toolchain |
@@ -315,15 +315,15 @@ skip would look like a pass.
 
 ## Related projects
 
-Vectex is developed alongside [FigForge](https://github.com/maiani/figforge),
+VecTeX is developed alongside [FigWorks](https://github.com/maiani/figworks),
 which composes multi-panel figures, and two other producers of editable SVG:
-[vecview](https://github.com/maiani/vecview) (layered 3D schematics) and cirquit
+[VecView](https://github.com/maiani/vecview) (layered 3D schematics) and VecWire
 (circuit schematics). All four share one premise: figures generated from code,
 with stable ids and byte-identical output, that stay editable in Inkscape.
 
-Vectex does not depend on any of them. A composition tool needs only
+VecTeX does not depend on any of them. A composition tool needs only
 `VectexFragment.to_svg_document()`, so the integration costs no import in either
-direction, and Vectex works the same against any destination that accepts SVG.
+direction, and VecTeX works the same against any destination that accepts SVG.
 
 ## Documentation
 

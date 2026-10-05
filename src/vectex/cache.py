@@ -88,7 +88,7 @@ def store(root: Path, key: str, fragment: VectexFragment) -> None:
 
 
 def clear(cache_dir: str | os.PathLike[str] | None = None) -> int:
-    """Remove only Vectex cache records and return the number removed."""
+    """Remove only VecTeX cache records and return the number removed."""
     root = cache_root(cache_dir)
     if root is None or not root.is_dir():
         return 0

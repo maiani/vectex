@@ -1,19 +1,19 @@
-# Vectex
+# VecTeX
 
-Vectex compiles LaTeX source into a self-contained,
+VecTeX compiles LaTeX source into a self-contained,
 editable SVG `<g>` fragment. It provides the rendering and normalization
 boundary behind TexText without requiring Inkscape or access to a destination
 SVG document.
 
 The returned outer group remains recognizable by TexText after a caller inserts
-it into an Inkscape SVG. Vectex also records versioned metadata that is useful
+it into an Inkscape SVG. VecTeX also records versioned metadata that is useful
 to applications that manage their own editing workflow.
 
 ## Related projects
 
-`vectex` is developed alongside [FigForge](https://github.com/maiani/figforge),
+`vectex` is developed alongside [FigWorks](https://github.com/maiani/figworks),
 which composes multi-panel figures, and
-[vecview](https://github.com/maiani/vecview), which draws layered 3D schematics
+[VecView](https://github.com/maiani/vecview), which draws layered 3D schematics
 as SVG. The three form a suite for publication figures, and each is usable on its
 own.
 
@@ -22,7 +22,7 @@ so the integration costs no import in either direction.
 
 ## Install
 
-Vectex requires Python 3.12 or newer and installs with `lxml` and Typer:
+VecTeX requires Python 3.12 or newer and installs with `lxml` and Typer:
 
 ```console
 python -m pip install vectex
@@ -61,13 +61,13 @@ for explicit executable paths and other configuration.
 
 ## Guarantees
 
-On success, Vectex returns one normalized SVG group with local IDs rewritten,
+On success, VecTeX returns one normalized SVG group with local IDs rewritten,
 unsafe SVG features rejected, and independent copies available to callers. See
 [Fragments](fragments.md) for the full object contract.
 
 ## Stability
 
-Vectex is beta: the API is settled enough to build on, and remaining churn is
+VecTeX is beta: the API is settled enough to build on, and remaining churn is
 documented rather than silent.
 
 The supported surface is the names exported in `vectex.__all__` and the `vectex`
@@ -84,4 +84,4 @@ unsupported, so a failure there is a bug worth reporting.
 
 ## License
 
-Vectex is distributed under the [MIT License](https://opensource.org/license/mit).
+VecTeX is distributed under the [MIT License](https://opensource.org/license/mit).

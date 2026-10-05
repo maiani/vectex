@@ -1,4 +1,4 @@
-# Vectex contributor guide
+# VecTeX contributor guide
 
 ## Scope
 
