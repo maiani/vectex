@@ -21,6 +21,10 @@ permissions:
 jobs:
   unit:
     name: Unit tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    # 3.15 is tracked before it is supported: until its final release, and
+    # until lxml and the docs toolchain ship wheels for it, it may fail without
+    # failing the run.
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -34,6 +38,9 @@ jobs:
             python-version: "3.14"
           - os: windows-latest
             python-version: "3.14"
+          - os: ubuntu-latest
+            python-version: "3.15"
+            experimental: true
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
@@ -45,6 +52,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: ${{ matrix.experimental || false }}
 
       - name: Install uv
         run: python -m pip install --upgrade uv
