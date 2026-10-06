@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use ty for type checking in development and CI instead of mypy.
+
 ## [0.2.1] - 2026-10-05
 
 ### Changed

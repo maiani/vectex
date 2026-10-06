@@ -31,7 +31,7 @@ def to_svg_py(serialized: str) -> Any:
 def to_drawsvg(serialized: str) -> Any:
     """Return a ``drawsvg.Raw`` element containing the canonical group."""
     try:
-        import drawsvg  # type: ignore[import-untyped]
+        import drawsvg
     except ImportError as exc:
         raise UnsupportedBackendError(
             "drawsvg is not installed; install vectex[drawsvg]"

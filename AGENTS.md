@@ -28,7 +28,7 @@ documents, implement an SVG editor, or provide a GUI.
 - Supported Python: 3.12 and newer.
 - Install a complete development environment with `uv sync --all-extras`.
 - Run `uv run ruff format --check .`, `uv run ruff check .`,
-  `uv run mypy src examples`, and `uv run pytest` before reporting a change
+  `uv run ty check`, and `uv run pytest` before reporting a change
   complete.
 - `examples/` is the realistic end-to-end check, and it is also a test suite:
   `tests/test_examples.py` runs every script and its `build()` under

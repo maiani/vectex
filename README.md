@@ -301,7 +301,7 @@ installation:
 uv sync --all-extras
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy src examples
+uv run ty check
 uv run pytest
 uv run python -m build
 ```
