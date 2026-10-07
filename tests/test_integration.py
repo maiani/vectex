@@ -70,6 +70,22 @@ def test_real_split_and_batch_match_individual_renders() -> None:
     assert all(fragment.baseline is not None for fragment in batch)
 
 
+def test_real_batch_places_labels_without_depth_like_individual_renders() -> None:
+    # pdfTeX positioned the first glyph of a page whose baseline lies on the
+    # bottom edge from where the previous page's text ended: every label with
+    # no depth after the first was shifted left by its predecessor's width.
+    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
+        pytest.skip("pdflatex and dvisvgm are required")
+    items = [
+        vectex.RenderItem(source) for source in ("$aaaaaaaa$", "$x$", r"$2\Delta$")
+    ]
+    batch = vectex.render_many(items)
+    individual = tuple(vectex.render(item.source) for item in items)
+    assert [fragment.to_svg() for fragment in batch] == [
+        fragment.to_svg() for fragment in individual
+    ]
+
+
 def test_real_batch_mixes_sizes_in_one_compilation() -> None:
     if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
         pytest.skip("pdflatex and dvisvgm are required")

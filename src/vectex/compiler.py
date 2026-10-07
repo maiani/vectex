@@ -144,8 +144,12 @@ def _tex_document_many(
             pages.append(content)
         else:
             pages.append(f"\\begin{{preview}}\n{content}\n\\end{{preview}}\n")
+    if cropped:
+        header += _METRICS_PREAMBLE + _PDFTEX_FLOOR
+    else:
+        header += _METRICS_PREAMBLE
     return (
-        header + _METRICS_PREAMBLE + "\\pagestyle{empty}\n"
+        header + "\\pagestyle{empty}\n"
         "\\begin{document}\n"
         + "".join(pages)
         + "\\immediate\\closeout\\vectexmetrics\n"
@@ -158,12 +162,26 @@ _METRICS_PREAMBLE = r"""
 \newwrite\vectexmetrics
 \immediate\openout\vectexmetrics=\jobname.vectex-metrics
 \newsavebox{\vectexbox}
+\newdimen\vectexfloor
 \newcommand{\vectexmeasure}[2]{%
   \sbox{\vectexbox}{#2}%
-  \immediate\write\vectexmetrics{#1,\strip@pt\ht\vectexbox,\strip@pt\dp\vectexbox}%
+  \immediate\write\vectexmetrics{#1,\strip@pt\ht\vectexbox,%
+    \strip@pt\dimexpr\dp\vectexbox+\vectexfloor\relax}%
   \usebox{\vectexbox}%
 }
 \makeatother
+"""
+
+
+# pdfTeX misplaces the first glyph of a page whose baseline lies exactly on the
+# page's bottom edge, as a cropped label with no depth does: it positions the
+# glyph from where the previous page's text ended, so every page of a batch
+# after the first came out shifted left by the previous label's width.  Cropping
+# a thousandth of a point below such a baseline keeps it off the edge, and the
+# measured depth includes it so the baseline stays exact.  LaTeX also defines
+# \pdftexversion under LuaTeX, which does no harm and keeps the engines alike.
+_PDFTEX_FLOOR = r"""\ifdefined\pdftexversion \vectexfloor=0.001pt \fi
+\edef\PreviewBbAdjust{0pt -\the\vectexfloor\space 0pt 0pt}
 """
 
 

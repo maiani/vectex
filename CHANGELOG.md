@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `render_many` with pdflatex placed every label without depth after the first
+  -- `$x$`, `$2\Delta$` -- shifted left by the previous label's width, partly
+  outside its own crop.  pdfTeX positions the first glyph of a page whose
+  baseline lies on the bottom edge from where the previous page's text ended;
+  the crop now reaches a thousandth of a point below such a baseline, and the
+  baseline stays exact.  Fragments from a batch are again identical to
+  individual renders.
 - `to_svg_py()` wrappers compare by their markup. Each call used to define a
   new wrapper class, so two wrappers of the same fragment were never equal,
   while two wrappers from one class were equal whatever they held.

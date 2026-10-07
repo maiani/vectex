@@ -235,3 +235,14 @@ def test_timeout_is_structured(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     assert error.value.timed_out
     assert error.value.stdout == "partial"
     assert "timed out" in str(error.value)
+
+
+def test_cropped_pages_keep_a_depthless_baseline_off_the_bottom_edge() -> None:
+    # Under pdfTeX the crop reaches a thousandth of a point below the baseline,
+    # and the measured depth includes it so the baseline stays exact.
+    cropped = _tex_document_many(("$x$", "$y$"), "")
+    assert r"\ifdefined\pdftexversion \vectexfloor=0.001pt \fi" in cropped
+    assert r"\edef\PreviewBbAdjust{0pt -\the\vectexfloor\space 0pt 0pt}" in cropped
+    assert r"\dimexpr\dp\vectexbox+\vectexfloor\relax" in cropped
+    full_page = _tex_document_many(("$x$",), r"\documentclass{article}")
+    assert "PreviewBbAdjust" not in full_page
