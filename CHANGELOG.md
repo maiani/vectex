@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
+0.2.0 and 0.2.1 were tagged but never published, so on PyPI this release
+follows 0.1.0 and also brings everything listed under them.
+
 ### Added
 
 - `color=` on `render`, `render_many`, and `RenderItem`, and `--color` on the

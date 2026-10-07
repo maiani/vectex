@@ -3,7 +3,7 @@
 [![Test](https://github.com/maiani/vectex/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/maiani/vectex/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/vectex.svg)](https://pypi.org/project/vectex/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-3DA639)](https://github.com/maiani/vectex/blob/v0.3.0/LICENSE)
 
 VecTeX compiles TeX source into one self-contained SVG `<g>` fragment, so
 equations and labels in a figure are generated from code and stay editable
@@ -12,7 +12,7 @@ regenerated and diffed in version control; the fragment is also an editable
 TexText object once inserted into an Inkscape document.
 
 <p align="center">
-  <img src="docs/images/readme.svg" alt="The time-dependent Schrodinger equation typeset by TeX as an SVG fragment" width="640">
+  <img src="https://raw.githubusercontent.com/maiani/vectex/v0.3.0/docs/images/readme.svg" alt="The time-dependent Schrodinger equation typeset by TeX as an SVG fragment" width="640">
 </p>
 
 <p align="center"><sub>One display equation, compiled by real TeX into an SVG fragment, from <code>docs/readme_figure.py</code>.</sub></p>
@@ -115,10 +115,10 @@ arrow = vectex.render(
 
 `extra_packages` emits only `\usepackage` lines, so `\usetikzlibrary`,
 `\pgfplotsset`, and package options need a complete `preamble`.
-[`examples/bloch_sphere.py`](examples/bloch_sphere.py) is a worked example, and
-[`examples/figure_labels.py`](examples/figure_labels.py) renders a batch of
+[`examples/bloch_sphere.py`](https://github.com/maiani/vectex/blob/v0.3.0/examples/bloch_sphere.py) is a worked example, and
+[`examples/figure_labels.py`](https://github.com/maiani/vectex/blob/v0.3.0/examples/figure_labels.py) renders a batch of
 labels in one compilation. The
-[rendering guide](docs/rendering.md#tikz-pictures) records one converter
+[rendering guide](https://github.com/maiani/vectex/blob/v0.3.0/docs/rendering.md#tikz-pictures) records one converter
 limitation: `dvisvgm` does not translate PDF shadings, so `\shade` and
 `ball color` yield a correctly sized fragment with nothing painted in it. Flat
 fills, patterns, opacity, and `pgfplots` convert normally.
@@ -275,7 +275,7 @@ of intermediate records may change in any release. The package ships a
 **Versioning.** VecTeX follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Before 1.0 a minor release may still break the public API, but never silently:
 every break is listed under `Changed` or `Removed` in
-[`CHANGELOG.md`](CHANGELOG.md). Patch releases never break it. 1.0 will freeze
+[`CHANGELOG.md`](https://github.com/maiani/vectex/blob/v0.3.0/CHANGELOG.md). Patch releases never break it. 1.0 will freeze
 the surface above for the 1.x series.
 
 **Output stability** is a separate and stronger promise: identical render inputs
@@ -339,10 +339,10 @@ direction, and VecTeX works the same against any destination that accepts SVG.
 
 ## Documentation
 
-- [Rendering](docs/rendering.md): the pipeline, baselines, TexText contract, and
+- [Rendering](https://github.com/maiani/vectex/blob/v0.3.0/docs/rendering.md): the pipeline, baselines, TexText contract, and
   trust policy
-- [Fragments](docs/fragments.md): placement, anchors, and caller integration
-- [Development](docs/development.md): toolchain and releases
+- [Fragments](https://github.com/maiani/vectex/blob/v0.3.0/docs/fragments.md): placement, anchors, and caller integration
+- [Development](https://github.com/maiani/vectex/blob/v0.3.0/docs/development.md): toolchain and releases
 
 Build the site locally with `uv run zensical build`.
 

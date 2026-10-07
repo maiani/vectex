@@ -84,3 +84,8 @@ GitHub owner `maiani`, repository `vectex`, workflow `publish.yml`, and
 environment `pypi`. The GitHub `pypi` environment can then require a reviewer
 before publishing. Ensure the release tag corresponds to the version in
 `pyproject.toml`.
+
+The README is also the PyPI project page, where relative links do not resolve,
+so its links and image are absolute and pinned to a release tag. When bumping
+the version, point them at the new tag, and refresh `uv.lock`, which records the
+project's own version: `uv lock`.
