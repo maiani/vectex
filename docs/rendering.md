@@ -22,7 +22,10 @@ implement Vectex's public `Compiler` and `Converter` protocols.
 ## Built-in pipeline
 
 The bundled pathway compiles each source page to PDF and converts it with
-`dvisvgm`. It is the only built-in converter pathway; applications that need a
+`dvisvgm`, which reads PDF through MuPDF's `mutool` or a Ghostscript older than
+10.01. With a newer Ghostscript and no `mutool`, dvisvgm exits with status 252
+and the render raises `ConversionError`; install `mutool` (`mupdf-tools` on
+Debian and Ubuntu). It is the only built-in converter pathway; applications that need a
 different intermediate format or SVG converter can provide their own
 `Compiler` and `Converter` implementations.
 

@@ -31,6 +31,8 @@ follows 0.1.0 and also brings everything listed under them.
 - `to_svg_py()` and `to_drawsvg()` scale the label from TeX points to CSS px by
   default, so it keeps its size in a px document instead of drawing at three
   quarters of it; `unit="pt"` keeps the canonical group.
+- The install instructions name MuPDF's `mutool`, which dvisvgm needs to read
+  PDF when Ghostscript is 10.01 or newer, as on current Linux distributions.
 - Disk cache records written by an earlier version are misses, since the same
   options now produce a different fragment.
 - Use ty for type checking in development and CI instead of mypy.

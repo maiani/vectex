@@ -83,7 +83,9 @@ jobs:
 
       - name: Install the TeX toolchain
         # dvisvgm is its own package, which texlive-binaries only recommends,
-        # so with --no-install-recommends it has to be named.
+        # so with --no-install-recommends it has to be named.  It reads PDF
+        # through mutool, or Ghostscript older than 10.01, which the runner's
+        # is not.
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
@@ -94,14 +96,15 @@ jobs:
             texlive-luatex \
             texlive-fonts-recommended \
             texlive-binaries \
-            dvisvgm
+            dvisvgm \
+            mupdf-tools
 
       - name: Verify the toolchain is complete
         # The integration tests skip themselves when an executable is missing,
         # so without this a broken install would report a green, empty run.
         run: |
           status=0
-          for tool in pdflatex xelatex lualatex dvisvgm; do
+          for tool in pdflatex xelatex lualatex dvisvgm mutool; do
             if ! command -v "$tool" >/dev/null; then
               echo "::error::$tool is missing; integration tests would silently skip"
               status=1

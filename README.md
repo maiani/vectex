@@ -30,7 +30,10 @@ python -m pip install vectex
 ```
 
 Rendering also needs a TeX engine (`pdflatex`, `xelatex`, or `lualatex`) and
-`dvisvgm` on `PATH`; TeX Live and MiKTeX ship both. The optional object-model
+`dvisvgm` on `PATH`; TeX Live and MiKTeX ship both. dvisvgm reads PDF through
+MuPDF's `mutool` or a Ghostscript older than 10.01, so with a current
+Ghostscript install `mutool` too (`mupdf-tools` on Debian and Ubuntu). The
+optional object-model
 adapters install with an extra:
 
 ```bash
