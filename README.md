@@ -47,6 +47,7 @@ import vectex
 fragment = vectex.render(r"mass $m$ and energy $E = mc^2$")
 label = vectex.render(r"$E = mc^2$", size_pt=8, id_prefix="einstein")
 vector = vectex.render(r"$\bm{n}$", extra_packages=("bm",))
+purple = vectex.render(r"$\mu$", color="#7a1fa2")  # glyphs and rules alike
 
 svg_text = fragment.to_svg()  # the <g> fragment as a string
 lxml_group = fragment.to_lxml()  # a fresh lxml element
@@ -142,14 +143,18 @@ import drawsvg
 import svg
 
 svg_py_document = svg.SVG(
-    width=fragment.width,
-    height=fragment.height,
+    width=fragment.width_px,
+    height=fragment.height_px,
     elements=[fragment.to_svg_py()],
 )
 
-drawing = drawsvg.Drawing(fragment.width, fragment.height)
+drawing = drawsvg.Drawing(fragment.width_px, fragment.height_px)
 drawing.append(fragment.to_drawsvg())
 ```
+
+Both documents measure in CSS px, so the wrappers scale the label from TeX
+points to px and it keeps its size; `width_px`, `height_px`, and `baseline_px`
+measure it there, and `unit="pt"` gives the canonical group unscaled.
 
 ## TexText editing in Inkscape
 
@@ -228,8 +233,9 @@ A successful render returns exactly one SVG `<g>` root with:
   `url(#...)` references rewritten, including inside inline styles;
 - the source viewport represented by an inner matrix transform;
 - normalized width, height, view box, scale, and measurable baseline;
-- inheritable default black glyph fills, so `fill` on an enclosing group
-  recolours a label while explicitly coloured glyphs keep their colour;
+- TeX's default black, in fills and strokes, as `currentColor`, so a label
+  takes the CSS `color` of where it is placed -- or `color=` at render time --
+  rules included, while parts coloured in TeX keep their colour;
 - deterministic repeated serialization;
 - a VecTeX `<metadata>` child with format version, source, engine, converter,
   geometry, and preamble/options;

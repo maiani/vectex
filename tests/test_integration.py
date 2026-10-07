@@ -86,6 +86,16 @@ def test_real_batch_places_labels_without_depth_like_individual_renders() -> Non
     ]
 
 
+def test_real_color_recolours_glyphs_and_rules_alike() -> None:
+    if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
+        pytest.skip("pdflatex and dvisvgm are required")
+    fragment = vectex.render(r"$\frac{a}{\sqrt{b}}$", color="#7a1fa2")
+    root = fragment.to_lxml()
+    assert (root.get("color"), root.get("fill")) == ("#7a1fa2", "currentColor")
+    strokes = {el.get("stroke") for el in root.iter() if el.get("stroke")}
+    assert strokes == {"currentColor"}  # the fraction bar and the radical's rule
+
+
 def test_real_batch_mixes_sizes_in_one_compilation() -> None:
     if shutil.which("pdflatex") is None or shutil.which("dvisvgm") is None:
         pytest.skip("pdflatex and dvisvgm are required")

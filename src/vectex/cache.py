@@ -20,6 +20,12 @@ def cache_root(cache_dir: str | os.PathLike[str] | None) -> Path | None:
     return Path(value).expanduser() / _NAMESPACE if value else None
 
 
+# Bump when the same options start producing a different fragment, so records
+# written by an older VecTeX are misses rather than served.  2: batched labels
+# without depth placed correctly, and TeX's default black as currentColor.
+_VERSION = 2
+
+
 def load(root: Path, key: str) -> VectexFragment | None:
     """Load a valid cache record, treating corruption as a cache miss."""
     path = root / f"{key}.json"
@@ -28,7 +34,7 @@ def load(root: Path, key: str) -> VectexFragment | None:
         payload = record["payload"]
         encoded = _json(payload)
         checksum = hashlib.blake2s(encoded.encode("utf-8")).hexdigest()
-        if record.get("version") != 1 or record.get("checksum") != checksum:
+        if record.get("version") != _VERSION or record.get("checksum") != checksum:
             raise ValueError("invalid cache record")
         raw_view_box = payload["view_box"]
         if not isinstance(raw_view_box, list) or len(raw_view_box) != 4:
@@ -74,7 +80,7 @@ def store(root: Path, key: str, fragment: VectexFragment) -> None:
     }
     encoded = _json(payload)
     checksum = hashlib.blake2s(encoded.encode("utf-8")).hexdigest()
-    record = _json({"checksum": checksum, "payload": payload, "version": 1})
+    record = _json({"checksum": checksum, "payload": payload, "version": _VERSION})
     fd, temporary = tempfile.mkstemp(prefix=".vectex-", suffix=".tmp", dir=root)
     temporary_path = Path(temporary)
     try:

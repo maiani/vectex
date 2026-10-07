@@ -24,6 +24,21 @@ def test_cli_prints_a_fragment(monkeypatch, simple_svg: bytes) -> None:
     assert result.stdout == f"{fragment.to_svg()}\n"
 
 
+def test_cli_passes_the_colour_through(monkeypatch, simple_svg: bytes) -> None:
+    fragment = Normalizer().normalize(
+        simple_svg, source="$x$", engine="pdflatex", converter="dvisvgm"
+    )
+    seen = {}
+    monkeypatch.setattr(
+        "vectex.cli.render", lambda source, **kwargs: seen.update(kwargs) or fragment
+    )
+
+    result = runner.invoke(app, ["$x$", "--color", "#7a1fa2"])
+
+    assert result.exit_code == 0
+    assert seen["color"] == "#7a1fa2"
+
+
 def test_cli_reads_source_from_standard_input(monkeypatch, simple_svg: bytes) -> None:
     fragment = Normalizer().normalize(
         simple_svg, source="$E=mc^2$", engine="pdflatex", converter="dvisvgm"
@@ -156,6 +171,7 @@ def test_cli_forwards_rendering_options(monkeypatch, simple_svg: bytes) -> None:
         "scale": None,
         "timeout": 10.0,
         "id_prefix": "einstein",
+        "color": None,
         "cache_dir": Path(".vectex-cache"),
         "refresh": True,
         "textext_preamble_file": "",

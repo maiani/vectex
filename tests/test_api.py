@@ -311,6 +311,30 @@ def test_render_many_accepts_per_item_overrides(simple_svg: bytes) -> None:
     assert large.width == 2 * small.width
 
 
+def test_color_is_an_item_option_and_part_of_the_cache_key(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, simple_svg: bytes
+) -> None:
+    compiler = BatchCompiler()
+    converter = BatchConverter(simple_svg)
+    plain, purple = vectex.render_many(
+        [vectex.RenderItem("x"), vectex.RenderItem("y", color="#7a1fa2")],
+        engine=compiler,
+        converter=converter,
+    )
+    assert compiler.calls == 1  # colour does not split the compilation
+    assert plain.to_lxml().get("color") is None
+    assert purple.to_lxml().get("color") == "#7a1fa2"
+    identified = IdentifiedCompiler()
+    monkeypatch.setattr("vectex.api.TeXCompiler", lambda _name: identified)
+    monkeypatch.setattr(
+        "vectex.api.converter_from_name", lambda _name: IdentifiedConverter(simple_svg)
+    )
+    vectex.render("x", cache_dir=tmp_path)
+    blue = vectex.render("x", cache_dir=tmp_path, color="#1f5fa8")
+    assert identified.calls == 2
+    assert blue.to_lxml().get("color") == "#1f5fa8"
+
+
 def test_cache_records_track_the_toolchain(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, simple_svg: bytes
 ) -> None:

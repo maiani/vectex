@@ -22,21 +22,25 @@ explicitly.
 
 `width`, `height`, and the optional `baseline` are the whole placement
 interface: the fragment origin is its cropped top-left corner, so an anchor
-becomes an offset and a wrapper transform. A caller that draws inline labels
+becomes an offset and a wrapper transform. They are in TeX points, the unit of
+the geometry; `width_px`, `height_px`, and `baseline_px` give the same in CSS
+px, the user unit of svg.py and drawsvg documents, which is what
+`to_svg_py()` and `to_drawsvg()` produce. A caller that draws inline labels
 usually wants this once:
 
 ```python
 def label(drawing, x, y, source, *, anchor="middle", valign="baseline"):
     """Place a label with (x, y) on one edge of its box."""
     fragment = vectex.render(source, size_pt=7, cache_dir=".cache")
-    if valign == "baseline" and fragment.baseline is None:
+    if valign == "baseline" and fragment.baseline_px is None:
         raise ValueError("this source has no measurable baseline")
-    dx = {"start": 0.0, "middle": -fragment.width / 2, "end": -fragment.width}[anchor]
+    w, h = fragment.width_px, fragment.height_px
+    dx = {"start": 0.0, "middle": -w / 2, "end": -w}[anchor]
     dy = {
         "top": 0.0,
-        "middle": -fragment.height / 2,
-        "bottom": -fragment.height,
-        "baseline": -fragment.baseline,
+        "middle": -h / 2,
+        "bottom": -h,
+        "baseline": -fragment.baseline_px,
     }[valign]
     group = drawsvg.Group(transform=f"translate({x + dx},{y + dy})")
     group.append(fragment.to_drawsvg())
@@ -73,7 +77,10 @@ Use `--input PATH` for UTF-8 source files or the positional `-` to read source
 from standard input.
 
 When their optional dependencies are installed, `to_svg_py()` and
-`to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`. Two
+`to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`. Both
+documents measure in CSS px, so by default the wrappers scale the label from TeX
+points to px (96/72) and it keeps its size: an 8 pt label is 8 pt there too, and
+`width_px` by `height_px`. `unit="pt"` gives the canonical group unscaled. Two
 `svg.py` wrappers are equal exactly when they hold the same markup, so a
 document built from them compares and deduplicates as plain `svg.py` would.
 
@@ -90,10 +97,33 @@ The prefix also names the outer group: `id_prefix="einstein"` produces
 `id="einstein-root"`. The CLI accepts the same value through
 `--id-prefix einstein`.
 
-Default black glyph paths do not override `fill`, so a fill set on a destination
-wrapper group recolours the whole label. Explicit non-black source colours are
-preserved. The fragment origin is its cropped top-left corner, allowing free
-placement through a wrapper transform in `svg.py`, drawsvg, or raw SVG.
+The fragment origin is its cropped top-left corner, allowing free placement
+through a wrapper transform in `svg.py`, drawsvg, or raw SVG.
+
+## Colour
+
+TeX draws in black by default, and VecTeX makes that black follow the CSS
+colour instead: the outer group's fill and every default-black fill and stroke
+are `currentColor`. A label is therefore black wherever nothing sets a colour,
+and takes the `color` of the element it is placed in -- glyphs and rules alike,
+so a fraction bar or a radical's rule recolours with the symbols around it:
+
+```python
+purple = vectex.render(r"$\frac{\mu}{2}$", color="#7a1fa2")  # baked in
+plain = vectex.render(r"$\frac{\mu}{2}$")  # follows where it is placed:
+# <g color="#7a1fa2"> ... plain ... </g>
+```
+
+`color=` takes one CSS colour and sets it on the outer group, so the fragment
+carries it everywhere it goes; `RenderItem(color=...)` colours one label of a
+batch, and the CLI takes `--color`. Colour does not affect compilation, so a
+batch of labels in different colours is still one TeX run.
+
+Parts coloured in the TeX source keep their colour: with
+`extra_packages=("xcolor",)`, `\color{red}` or `\textcolor[HTML]{1F5FA8}{...}`
+paints exactly what it covers, rules included, and the rest follows the label's
+colour. Set colour with `color`, not `fill`: the label's own `currentColor`
+fill takes precedence over a `fill` on the group around it.
 
 The metadata record contains the original source, render engine and converter,
 geometry, options, and format version. It supplements TexText-compatible

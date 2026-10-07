@@ -146,6 +146,13 @@ def main(
         float,
         typer.Option("--timeout", help="Maximum compiler time in seconds."),
     ] = 30.0,
+    color: Annotated[
+        str | None,
+        typer.Option(
+            "--color",
+            help="CSS colour for the label; parts coloured in TeX keep theirs.",
+        ),
+    ] = None,
     id_prefix: Annotated[
         str | None,
         typer.Option(
@@ -199,6 +206,7 @@ def main(
             scale=scale,
             timeout=timeout,
             id_prefix=id_prefix,
+            color=color,
             cache_dir=cache_dir,
             refresh=refresh,
             textext_preamble_file=textext_preamble_file,

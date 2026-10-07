@@ -68,6 +68,7 @@ class Normalizer:
         textext_source: str | None = None,
         textext_preamble_file: str = "",
         textext_alignment: str = "middle center",
+        color: str | None = None,
     ) -> VectexFragment:
         """Return one safe, self-contained SVG group."""
         _validate_xml_text(source, "source")
@@ -76,6 +77,7 @@ class Normalizer:
         _validate_xml_text(textext_source, "textext_source")
         _validate_xml_text(textext_preamble_file, "textext_preamble_file")
         _validate_xml_text(textext_alignment, "textext_alignment")
+        color = _color(color)
         scale = _positive_number(scale, "scale")
         if baseline is not None and not math.isfinite(baseline):
             raise ConfigurationError("baseline must be finite when provided")
@@ -99,7 +101,7 @@ class Normalizer:
         fragment_id = f"{prefix}-root"
         id_map = _validate_and_map(root, prefix=prefix, root_id=fragment_id)
         _rewrite_references(root, id_map)
-        _make_default_fill_inheritable(root)
+        _paint_default_black_with_current_color(root)
 
         width = source_width * scale
         height = source_height * scale
@@ -133,6 +135,11 @@ class Normalizer:
             nsmap["xlink"] = XLINK_NS
         group = etree.Element(f"{{{SVG_NS}}}g", nsmap=nsmap)
         group.set("id", fragment_id)
+        # Glyphs with no fill of their own, and TeX's default black, follow the
+        # CSS colour: black unless the fragment or where it is placed sets one.
+        group.set("fill", "currentColor")
+        if color is not None:
+            group.set("color", color)
         if textext_compatible:
             _add_textext_attributes(
                 group,
@@ -367,30 +374,53 @@ def _rewrite_references(root: etree._Element, mapping: Mapping[str, str]) -> Non
 _DEFAULT_BLACK = frozenset({"#000", "#000000", "black", "rgb(0,0,0)"})
 
 
-def _make_default_fill_inheritable(root: etree._Element) -> None:
-    """Remove default black fills so the destination group's fill is inherited."""
+_PAINTS = frozenset({"fill", "stroke"})
+_COLOR = re.compile(r"[#A-Za-z0-9(),.%\s+-]+")
+
+
+def _color(value: str | None) -> str | None:
+    """A CSS colour for the fragment's ``color``, checked to be one plain value."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not _COLOR.fullmatch(value) or not value.strip():
+        raise ConfigurationError(
+            f"color must be a CSS colour such as '#7a1fa2', got {value!r}"
+        )
+    return value.strip()
+
+
+def _is_default_black(value: str) -> bool:
+    return value.strip().lower().replace(" ", "") in _DEFAULT_BLACK
+
+
+def _paint_default_black_with_current_color(root: etree._Element) -> None:
+    """Make TeX's default black, in fills and strokes, follow the CSS colour.
+
+    Rules -- fraction bars, radicals, overlines -- are strokes, so recolouring
+    only fills would leave them black.  Explicitly coloured parts keep their
+    colour.
+    """
     for element in root.iter():
-        fill = element.get("fill")
-        if fill is not None and fill.strip().lower().replace(" ", "") in _DEFAULT_BLACK:
-            del element.attrib["fill"]
+        for name in _PAINTS:
+            value = element.get(name)
+            if value is not None and _is_default_black(value):
+                element.set(name, "currentColor")
         style = element.get("style")
         if style is None:
             continue
         declarations = []
         for declaration in style.split(";"):
             name, separator, value = declaration.partition(":")
+            if not declaration.strip():
+                continue
             if (
                 separator
-                and name.strip().lower() == "fill"
-                and value.strip().lower().replace(" ", "") in _DEFAULT_BLACK
+                and name.strip().lower() in _PAINTS
+                and _is_default_black(value)
             ):
-                continue
-            if declaration.strip():
-                declarations.append(declaration.strip())
-        if declarations:
-            element.set("style", ";".join(declarations))
-        else:
-            del element.attrib["style"]
+                declaration = f"{name.strip()}:currentColor"
+            declarations.append(declaration.strip())
+        element.set("style", ";".join(declarations))
 
 
 def _mapped(target: str, mapping: Mapping[str, str]) -> str:

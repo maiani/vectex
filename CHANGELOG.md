@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `color=` on `render`, `render_many`, and `RenderItem`, and `--color` on the
+  command line: one CSS colour for the whole label, glyphs and rules alike,
+  set on the outer group.  Parts coloured in the TeX source keep theirs, and a
+  batch in several colours is still one compilation.
+- `width_px`, `height_px`, and `baseline_px`: the fragment's geometry in CSS
+  px, the user unit of svg.py and drawsvg documents.
+
 ### Changed
 
+- TeX's default black, in fills and strokes, is now `currentColor`, and the
+  outer group's fill is too: a label takes the CSS `color` of where it is
+  placed, its fraction bars and radicals included, which used to stay black.
+  Recolour with `color`, not `fill`: the label's own fill now takes precedence
+  over a `fill` on an enclosing group.
+- `to_svg_py()` and `to_drawsvg()` scale the label from TeX points to CSS px by
+  default, so it keeps its size in a px document instead of drawing at three
+  quarters of it; `unit="pt"` keeps the canonical group.
+- Disk cache records written by an earlier version are misses, since the same
+  options now produce a different fragment.
 - Use ty for type checking in development and CI instead of mypy.
 
 ### Fixed

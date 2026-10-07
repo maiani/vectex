@@ -63,6 +63,7 @@ class RenderItem:
     textext_compatible: bool | None = None
     textext_preamble_file: str | None = None
     textext_alignment: str | None = None
+    color: str | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,7 @@ class _Resolved:
     textext_compatible: bool
     textext_preamble_file: str
     textext_alignment: str
+    color: str | None
     compilation: tuple[Any, ...]
     cacheable: bool
 
@@ -111,6 +113,7 @@ def render(
     textext_compatible: bool = True,
     textext_preamble_file: str = "",
     textext_alignment: str = "middle center",
+    color: str | None = None,
 ) -> VectexFragment:
     """Compile *source* as a literal TeX document body and return one SVG fragment.
 
@@ -140,6 +143,7 @@ def render(
         textext_compatible=textext_compatible,
         textext_preamble_file=textext_preamble_file,
         textext_alignment=textext_alignment,
+        color=color,
     )[0]
 
 
@@ -164,6 +168,7 @@ def render_many(
     textext_compatible: bool = True,
     textext_preamble_file: str = "",
     textext_alignment: str = "middle center",
+    color: str | None = None,
 ) -> tuple[VectexFragment, ...]:
     """Render several sources, sharing invocations wherever the options allow.
 
@@ -194,6 +199,7 @@ def render_many(
         textext_compatible=textext_compatible,
         textext_preamble_file=textext_preamble_file,
         textext_alignment=textext_alignment,
+        color=color,
     )
     entries = _entries(sources)
     components: dict[Any, Compiler | Converter] = {}
@@ -318,6 +324,7 @@ def _render_uncached(
                     textext_source=item.source,
                     textext_preamble_file=item.textext_preamble_file,
                     textext_alignment=item.textext_alignment,
+                    color=item.color,
                 )
             )
         return tuple(fragments)
@@ -363,6 +370,9 @@ def _resolve(
     textext_alignment = chosen("textext_alignment")
     if not isinstance(textext_alignment, str) or not textext_alignment.strip():
         raise ConfigurationError("textext_alignment must be a non-empty string")
+    color = chosen("color")
+    if color is not None and not isinstance(color, str):
+        raise ConfigurationError("color must be a string or None")
 
     engine_spec = chosen("engine")
     converter_spec = chosen("converter")
@@ -418,6 +428,7 @@ def _resolve(
         textext_compatible=textext_compatible,
         textext_preamble_file=textext_preamble_file,
         textext_alignment=textext_alignment,
+        color=color,
         compilation=(
             engine_key,
             converter_key,
@@ -468,6 +479,7 @@ def _cache_key(item: _Resolved, *, cached: bool) -> str:
         "scale": item.scale,
         "size_pt": item.size_pt,
         "source": item.source,
+        "color": item.color,
         "textext_alignment": item.textext_alignment,
         "textext_compatible": item.textext_compatible,
         "textext_preamble_file": item.textext_preamble_file,

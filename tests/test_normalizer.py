@@ -156,18 +156,40 @@ def test_baseline_from_converter_or_explicit_value() -> None:
     assert normalize(raw, baseline_ratio=0.5, scale=2).baseline == 5
 
 
-def test_default_black_fill_is_inherited_but_authored_colour_is_preserved() -> None:
+def test_default_black_follows_current_color_and_authored_colour_is_kept() -> None:
     raw = (
         f'<svg xmlns="{SVG_NS}" viewBox="0 0 2 2">'
         '<path id="black" fill="#000" d="M0 0"/>'
         '<path id="red" fill="#f00" d="M1 1"/>'
+        '<path id="rule" fill="none" stroke="black" d="M0 1H2"/>'
+        '<path id="styled" style="fill: #000000; stroke:rgb(0, 0, 0)" d="M0 2"/>'
+        '<path id="plain" d="M2 2"/>'
         "</svg>"
     ).encode()
     root = normalize(raw).to_lxml()
-    black = root.xpath(".//*[@id='fixture-0']")[0]
-    red = root.xpath(".//*[@id='fixture-1']")[0]
-    assert black.get("fill") is None
+    black, red, rule, styled, plain = (
+        root.xpath(f".//*[@id='fixture-{i}']")[0] for i in range(5)
+    )
+    # Glyphs with no fill inherit the root's, which follows the CSS colour too.
+    assert root.get("fill") == "currentColor"
+    assert root.get("color") is None
+    assert black.get("fill") == "currentColor"
     assert red.get("fill") == "#f00"
+    # Rules -- fraction bars, radicals -- are strokes and recolour with glyphs.
+    assert (rule.get("fill"), rule.get("stroke")) == ("none", "currentColor")
+    assert styled.get("style") == "fill:currentColor;stroke:currentColor"
+    assert plain.get("fill") is None
+
+
+def test_color_sets_the_css_colour_of_the_whole_label() -> None:
+    raw = f'<svg xmlns="{SVG_NS}" viewBox="0 0 1 1"><path d="M0 0"/></svg>'.encode()
+    assert normalize(raw, color="#7a1fa2").to_lxml().get("color") == "#7a1fa2"
+    assert normalize(raw, color=" rgb(10%, 20%, 30%) ").to_lxml().get("color") == (
+        "rgb(10%, 20%, 30%)"
+    )
+    for bad in ("", "red; fill: blue", 'red" onload="x', 3):
+        with pytest.raises(ConfigurationError, match="color"):
+            normalize(raw, color=bad)
 
 
 def test_lxml_returns_independent_copies(simple_svg: bytes) -> None:
