@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from functools import cache
 from typing import Any
 
 from .exceptions import UnsupportedBackendError
 
 
-def to_svg_py(serialized: str) -> Any:
-    """Return an ``svg.Element`` that serializes the canonical group verbatim."""
+@cache
+def _svg_py_group() -> type:
+    """The svg.py wrapper class, defined once so that wrappers compare by content."""
     try:
         import svg
     except ImportError as exc:
@@ -25,7 +27,21 @@ def to_svg_py(serialized: str) -> Any:
         def as_str(self) -> str:
             return self._vectex_content
 
-    return VectexSvgPyGroup(serialized)
+        # svg.py compares dataclass fields, and the markup is not one of them.
+        def __eq__(self, other: object) -> bool:
+            if not isinstance(other, VectexSvgPyGroup):
+                return NotImplemented
+            return self._vectex_content == other._vectex_content
+
+        def __hash__(self) -> int:
+            return hash(self._vectex_content)
+
+    return VectexSvgPyGroup
+
+
+def to_svg_py(serialized: str) -> Any:
+    """Return an ``svg.Element`` that serializes the canonical group verbatim."""
+    return _svg_py_group()(serialized)
 
 
 def to_drawsvg(serialized: str) -> Any:

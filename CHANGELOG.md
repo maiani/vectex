@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Use ty for type checking in development and CI instead of mypy.
 
+### Fixed
+
+- `to_svg_py()` wrappers compare by their markup. Each call used to define a
+  new wrapper class, so two wrappers of the same fragment were never equal,
+  while two wrappers from one class were equal whatever they held.
+
 ## [0.2.1] - 2026-10-05
 
 ### Changed

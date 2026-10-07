@@ -73,7 +73,9 @@ Use `--input PATH` for UTF-8 source files or the positional `-` to read source
 from standard input.
 
 When their optional dependencies are installed, `to_svg_py()` and
-`to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`.
+`to_drawsvg()` return insertable wrappers for `svg.py` and `drawsvg`. Two
+`svg.py` wrappers are equal exactly when they hold the same markup, so a
+document built from them compares and deduplicates as plain `svg.py` would.
 
 ## Portability
 
