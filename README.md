@@ -157,7 +157,9 @@ drawing.append(fragment.to_drawsvg())
 
 Both documents measure in CSS px, so the wrappers scale the label from TeX
 points to px and it keeps its size; `width_px`, `height_px`, and `baseline_px`
-measure it there, and `unit="pt"` gives the canonical group unscaled.
+measure it there, and `unit="pt"` gives the canonical group unscaled. Either
+wrapper can also place the label by a point of its box, its baseline included:
+`fragment.to_svg_py(x=40, y=120, valign="baseline")`.
 
 ## TexText editing in Inkscape
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `x`, `y`, `anchor`, and `valign` on `to_svg_py()` and `to_drawsvg()`: the
+  wrapper places the label with one point of its box at `(x, y)` -- `anchor`
+  across (`start`, `middle`, `end`), `valign` down (`top`, `middle`,
+  `bottom`, `baseline`).  The defaults keep the top-left corner at the origin,
+  and the markup unchanged.  Aligning on a baseline the fragment has not
+  measured raises `ConfigurationError`.
+
 ## [0.3.0] - 2026-10-07
 
 0.2.0 and 0.2.1 were tagged but never published, so on PyPI this release

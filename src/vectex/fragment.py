@@ -98,26 +98,77 @@ class VectexFragment:
         )
         return etree.fromstring(self._serialized, parser=parser)
 
-    def to_svg_py(self, *, unit: str = "px") -> Any:
+    def to_svg_py(
+        self,
+        *,
+        unit: str = "px",
+        x: float = 0.0,
+        y: float = 0.0,
+        anchor: str = "start",
+        valign: str = "top",
+    ) -> Any:
         """Return an insertable svg.py-compatible wrapper.
 
         With ``unit="px"`` (the default) the label is scaled from TeX points
         to CSS px, the user unit of an svg.py document, so it keeps its size
         there; it is then ``width_px`` by ``height_px``.  ``unit="pt"`` gives
         the canonical group unscaled.
+
+        ``(x, y)``, in ``unit``, is where the label goes: the point on its box
+        that ``anchor`` (``"start"``, ``"middle"``, or ``"end"``, across) and
+        ``valign`` (``"top"``, ``"middle"``, ``"bottom"``, or ``"baseline"``,
+        down) name.  The default puts the top-left corner at the origin.
+        ``valign="baseline"`` raises :class:`ConfigurationError` for a
+        fragment with no measured baseline.
         """
-        return adapters.to_svg_py(self._markup(unit))
+        return adapters.to_svg_py(self._markup(unit, x, y, anchor, valign))
 
-    def to_drawsvg(self, *, unit: str = "px") -> Any:
-        """Return an insertable drawsvg-compatible wrapper, in px by default."""
-        return adapters.to_drawsvg(self._markup(unit))
+    def to_drawsvg(
+        self,
+        *,
+        unit: str = "px",
+        x: float = 0.0,
+        y: float = 0.0,
+        anchor: str = "start",
+        valign: str = "top",
+    ) -> Any:
+        """Return an insertable drawsvg wrapper, placed as :meth:`to_svg_py` places."""
+        return adapters.to_drawsvg(self._markup(unit, x, y, anchor, valign))
 
-    def _markup(self, unit: str) -> str:
-        if unit == "pt":
-            return self.to_svg()
+    def _markup(self, unit: str, x: float, y: float, anchor: str, valign: str) -> str:
+        if unit not in ("px", "pt"):
+            raise ConfigurationError(f"unit must be 'px' or 'pt', got {unit!r}")
+        per_pt = _PX_PER_PT if unit == "px" else 1.0
+        across = {"start": 0.0, "middle": 0.5, "end": 1.0}
+        down = {"top": 0.0, "middle": 0.5, "bottom": 1.0}
+        if anchor not in across:
+            raise ConfigurationError(
+                f"anchor must be 'start', 'middle', or 'end', got {anchor!r}"
+            )
+        if valign == "baseline":
+            if self.baseline is None:
+                raise ConfigurationError(
+                    "this fragment has no measured baseline to align on; pass"
+                    " baseline= when rendering it, or align by its box"
+                )
+            drop = self.baseline
+        elif valign in down:
+            drop = down[valign] * self.height
+        else:
+            raise ConfigurationError(
+                "valign must be 'top', 'middle', 'bottom', or 'baseline',"
+                f" got {valign!r}"
+            )
+        left = x - across[anchor] * self.width * per_pt
+        top = y - drop * per_pt
+        transforms = (
+            [f"translate({_number(left)} {_number(top)})"] if left or top else []
+        )
         if unit == "px":
-            return f'<g transform="scale({_number(_PX_PER_PT)})">{self.to_svg()}</g>'
-        raise ConfigurationError(f"unit must be 'px' or 'pt', got {unit!r}")
+            transforms.append(f"scale({_number(_PX_PER_PT)})")
+        if not transforms:
+            return self.to_svg()
+        return f'<g transform="{" ".join(transforms)}">{self.to_svg()}</g>'
 
 
 def _number(value: float) -> str:

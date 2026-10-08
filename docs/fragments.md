@@ -21,31 +21,27 @@ explicitly.
 ## Placing a fragment
 
 `width`, `height`, and the optional `baseline` are the whole placement
-interface: the fragment origin is its cropped top-left corner, so an anchor
-becomes an offset and a wrapper transform. They are in TeX points, the unit of
-the geometry; `width_px`, `height_px`, and `baseline_px` give the same in CSS
-px, the user unit of svg.py and drawsvg documents, which is what
-`to_svg_py()` and `to_drawsvg()` produce. A caller that draws inline labels
-usually wants this once:
+interface: the fragment origin is its cropped top-left corner. They are in TeX
+points, the unit of the geometry; `width_px`, `height_px`, and `baseline_px`
+give the same in CSS px, the user unit of svg.py and drawsvg documents, which is
+what `to_svg_py()` and `to_drawsvg()` produce.
+
+Those two wrappers can also place the label for you. `x` and `y`, in the
+wrapper's unit, are where one point of its box goes: `anchor` names it across
+(`"start"`, `"middle"`, `"end"`) and `valign` down (`"top"`, `"middle"`,
+`"bottom"`, `"baseline"`). By default the top-left corner goes to the origin,
+as before:
 
 ```python
-def label(drawing, x, y, source, *, anchor="middle", valign="baseline"):
-    """Place a label with (x, y) on one edge of its box."""
-    fragment = vectex.render(source, size_pt=7, cache_dir=".cache")
-    if valign == "baseline" and fragment.baseline_px is None:
-        raise ValueError("this source has no measurable baseline")
-    w, h = fragment.width_px, fragment.height_px
-    dx = {"start": 0.0, "middle": -w / 2, "end": -w}[anchor]
-    dy = {
-        "top": 0.0,
-        "middle": -h / 2,
-        "bottom": -h,
-        "baseline": -fragment.baseline_px,
-    }[valign]
-    group = drawsvg.Group(transform=f"translate({x + dx},{y + dy})")
-    group.append(fragment.to_drawsvg())
-    drawing.append(group)
+label = vectex.render(r"$E = mc^2$", size_pt=9)
+drawing.append(label.to_drawsvg(x=40, y=120, anchor="middle", valign="baseline"))
+svg_py_elements.append(label.to_svg_py(x=40, y=120, valign="baseline"))
 ```
+
+`valign="baseline"` needs a measured baseline and raises `ConfigurationError`
+for a fragment without one, such as display maths; pass `baseline=` when
+rendering it, or align it by its box. Placement is one translation on the
+wrapper, so the canonical group inside is unchanged.
 
 Prefer baseline alignment when labels must read as one line: a word with a
 descender aligned by the bottom of its box sits optically higher than a word
@@ -53,9 +49,10 @@ without one, because the box, not the type, is what got aligned.
 
 ## Integration boundary
 
-VecTeX creates a normalized fragment and reports its geometry. The caller owns
-insertion into a destination document, placement, replacement, GUI behavior,
-and Inkscape selection management. The returned outer group should remain
+VecTeX creates a normalized fragment and reports its geometry, and its wrappers
+can offset the label by that geometry. The caller owns insertion into a
+destination document, layout, replacement, GUI behavior, and Inkscape
+selection management. The returned outer group should remain
 intact when TexText compatibility is needed.
 
 ## Serialization and copies
