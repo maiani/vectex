@@ -233,7 +233,7 @@ many it removed.
 
 A successful render returns exactly one SVG `<g>` root with:
 
-- copied converter definitions and visible elements;
+- copied converter definitions, in order of first use, and visible elements;
 - a deterministic, input-derived id prefix, with `href`, `xlink:href`, and
   `url(#...)` references rewritten, including inside inline styles;
 - the source viewport represented by an inner matrix transform;

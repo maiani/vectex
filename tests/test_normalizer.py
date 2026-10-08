@@ -61,11 +61,12 @@ def test_nested_definitions_and_all_reference_forms_are_rewritten(
         "fixture-4",
     }
     values = [value for element in root.iter() for value in element.attrib.values()]
-    assert "#fixture-0" in values
-    assert "url(#fixture-2)" in values
+    # Numbered by first use: the clip path, then the glyph it draws.
+    assert "#fixture-1" in values
+    assert "url(#fixture-0)" in values
     assert any("url(#fixture-3)" in value for value in values)
     xlink_hrefs = root.xpath("//@xlink:href", namespaces={"xlink": XLINK_NS})
-    assert xlink_hrefs == ["#fixture-0"]
+    assert xlink_hrefs == ["#fixture-1"]
     assert not re.search(r"(?<!fixture-)#(?:glyph|clip|gradient)", fragment_xml(root))
 
 
@@ -79,6 +80,40 @@ def test_pruning_retains_a_referenced_nested_definition() -> None:
     href = root.xpath("//*[local-name()='use']/@href")
     assert href == ["#fixture-1"]
     assert root.xpath("//*[@id='fixture-1']")
+
+
+def test_definitions_are_ordered_by_first_use_whatever_the_converter_order() -> None:
+    # dvisvgm writes a batch page's glyphs in an order that varies between runs.
+    glyphs = {
+        "g3-1": '<path id="g3-1" d="M0 0h1"/>',
+        "g0-5": '<path id="g0-5" d="M0 0h2"/>',
+        "g1-1": '<path id="g1-1" d="M0 0h3"/>',
+        "g2-9": '<path id="g2-9" d="M0 0h4"/>',
+        "clip": '<clipPath id="clip"><use href="#g2-9"/></clipPath>',
+    }
+    body = (
+        '<use href="#g0-5"/><use href="#g3-1" clip-path="url(#clip)"/>'
+        '<use href="#g1-1"/><use href="#g0-5"/>'
+    )
+
+    def rendered(order: tuple[str, ...]) -> str:
+        defs = "".join(glyphs[name] for name in order)
+        raw = f'<svg xmlns="{SVG_NS}" viewBox="0 0 1 1"><defs>{defs}</defs>{body}</svg>'
+        return normalize(raw.encode()).to_svg()
+
+    first = rendered(("g3-1", "g0-5", "g1-1", "g2-9", "clip"))
+    assert rendered(("clip", "g1-1", "g2-9", "g0-5", "g3-1")) == first
+    assert rendered(("g0-5", "g3-1", "clip", "g2-9", "g1-1")) == first
+    root = etree.fromstring(first)
+    defs = root.find(f".//{{{SVG_NS}}}defs")
+    assert defs is not None
+    assert [child.get("d") or child.get("id") for child in defs] == [
+        "M0 0h2",
+        "M0 0h1",
+        "fixture-2",
+        "M0 0h4",
+        "M0 0h3",
+    ]
 
 
 def test_unsafe_unused_definition_is_rejected() -> None:

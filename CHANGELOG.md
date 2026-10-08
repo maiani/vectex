@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `render_many` could return a different fragment for the same input from one
+  process to the next.  dvisvgm writes the glyph definitions of a multi-page
+  conversion in an order that varies between runs, and ids are numbered in
+  document order, so the ids changed with it.  Definitions now follow the
+  order the label first uses them, whatever order the converter wrote.
+
 ## [0.4.0] - 2026-10-08
 
 ### Added

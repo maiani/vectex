@@ -83,8 +83,9 @@ document built from them compares and deduplicates as plain `svg.py` would.
 
 ## Portability
 
-VecTeX copies only the definitions required by visible SVG content and rewrites
-local IDs and references to a deterministic prefix derived from all
+VecTeX copies only the definitions required by visible SVG content, in the
+order that content first uses them whatever order the converter wrote, and
+rewrites local IDs and references to a deterministic prefix derived from all
 output-driving inputs. Identical calls therefore serialize identically. Use
 `unique_ids=True` when inserting the same render more than once into one SVG,
 or provide `id_prefix` to control the namespace. An explicit prefix passed to

@@ -235,7 +235,12 @@ def _qualify_svg_namespace(root: etree._Element) -> None:
 
 
 def _prune_unused_definitions(root: etree._Element) -> None:
-    """Drop converter definitions carried over from unrelated PDF pages."""
+    """Drop definitions from unrelated PDF pages and order the rest by first use.
+
+    dvisvgm writes the glyph definitions of a multi-page conversion in an order
+    that changes from run to run, and ids are later numbered in document order,
+    so the order is taken from the content instead.
+    """
     definitions = [
         element for element in root.iter() if etree.QName(element).localname == "defs"
     ]
@@ -247,16 +252,19 @@ def _prune_unused_definitions(root: etree._Element) -> None:
         for element in container.iterdescendants()
         if element.get("id") is not None
     }
-    needed: set[str] = set()
+    # Each referenced id with its rank: content order, depth first through the
+    # definitions it reaches.
+    first_use: dict[str, int] = {}
 
     def collect(element: etree._Element) -> None:
-        for key, value in element.attrib.items():
-            if etree.QName(key).localname == "href" and value.startswith("#"):
-                needed.add(value[1:])
-            for match in _URL_RE.finditer(value):
-                target = match.group("target").strip()
-                if target.startswith("#"):
-                    needed.add(target[1:])
+        for target in _local_references(element):
+            if target in first_use:
+                continue
+            first_use[target] = len(first_use)
+            definition = defined.get(target)
+            if definition is not None:
+                for descendant in definition.iter():
+                    collect(descendant)
 
     for element in root.iter():
         if not any(
@@ -264,28 +272,32 @@ def _prune_unused_definitions(root: etree._Element) -> None:
             for container in definitions
         ):
             collect(element)
-    pending = list(needed)
-    while pending:
-        target = pending.pop()
-        definition = defined.get(target)
-        if definition is None:
-            continue
-        before = set(needed)
-        for element in definition.iter():
-            collect(element)
-        pending.extend(needed - before)
     for container in definitions:
-        for child in tuple(container):
-            child_id = child.get("id")
-            descendant_ids = {
-                descendant.get("id") for descendant in child.iterdescendants()
-            }
-            if (
-                child_id is not None
-                and child_id not in needed
-                and descendant_ids.isdisjoint(needed)
-            ):
+        ranked = []
+        for position, child in enumerate(tuple(container)):
+            ranks = [
+                first_use[element_id]
+                for element in child.iter()
+                if (element_id := element.get("id")) in first_use
+            ]
+            if child.get("id") is not None and not ranks:
                 container.remove(child)
+            else:
+                ranked.append((min(ranks, default=len(first_use)), position, child))
+        container[:] = [child for _, _, child in sorted(ranked, key=lambda r: r[:2])]
+
+
+def _local_references(element: etree._Element) -> list[str]:
+    """Return the local ids *element* references, in attribute order."""
+    targets = []
+    for key, value in element.attrib.items():
+        if etree.QName(key).localname == "href" and value.startswith("#"):
+            targets.append(value[1:])
+        for match in _URL_RE.finditer(value):
+            target = match.group("target").strip()
+            if target.startswith("#"):
+                targets.append(target[1:])
+    return targets
 
 
 def _view_box(root: etree._Element) -> tuple[float, float, float, float]:
