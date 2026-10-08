@@ -30,6 +30,11 @@ documents, implement an SVG editor, or provide a GUI.
 - Run `uv run ruff format --check .`, `uv run ruff check .`,
   `uv run ty check`, and `uv run pytest` before reporting a change
   complete.
+- Typing serves the code, not the other way round. Type public signatures and
+  what types naturally, and keep `ty check` passing; where precise types would
+  contort the code -- a decorator that changes what a parameter accepts, say --
+  use a looser annotation or a targeted `# ty: ignore[code]`. Do not raise the
+  Python floor for typing features.
 - `examples/` is the realistic end-to-end check, and it is also a test suite:
   `tests/test_examples.py` runs every script and its `build()` under
   `VECTEX_RUN_INTEGRATION=1`. Run
